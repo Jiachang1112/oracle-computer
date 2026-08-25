@@ -243,12 +243,13 @@
     </div>
 
     <script>
-        const IP = "163.192.107.139"; 
+        // 把 IP 變數改成你的網域，或者直接把網域寫進 fetch 裡
+        const API_BASE = "https://oracle.chiacheng1112.com"; 
 
         async function updateDashboard() {
             try {
                 // 1. 更新系統資源
-                const sysRes = await fetch(`http://${IP}:5000/api/status`);
+                const sysRes = await fetch(`${API_BASE}/api/status`);
                 const sysData = await sysRes.json();
                 
                 document.getElementById('sys-cpu').innerText = `${sysData.cpu_percent} %`;
@@ -259,7 +260,7 @@
                 document.getElementById('ram-bar').style.width = `${ramPercent}%`;
 
                 // 2. 更新 PM2 清單
-                const pm2Res = await fetch(`http://${IP}:5000/api/pm2`);
+                const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
                 
                 let tableHTML = '';
@@ -279,7 +280,7 @@
                 document.getElementById('pm2-list').innerHTML = tableHTML;
 
                 // 3. 更新日誌
-                const logRes = await fetch(`http://${IP}:5000/api/logs`);
+                const logRes = await fetch(`${API_BASE}/api/logs`);
                 const logData = await logRes.json();
                 const logViewer = document.getElementById('log-viewer');
                 

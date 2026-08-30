@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Dashboard</title>
-    <!-- 引入高質感字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <title>Server Dashboard | Pro Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --accent-green: #10b981;
-            --accent-blue: #3b82f6;
-            --accent-red: #ef4444;
+            /* 完美致敬 Netdata 的深色調 */
+            --bg-color: #111111;
+            --card-bg: #1a1b1e;
+            --text-main: #e0e0e0;
+            --text-muted: #888888;
+            --border-color: #2c2d30;
+            --accent-green: #00b85c;
+            --accent-blue: #0099ff;
+            --accent-red: #ff3366;
+            --accent-yellow: #ffcc00;
         }
 
         body {
@@ -23,210 +24,239 @@
             color: var(--text-main);
             font-family: 'Noto Sans TC', sans-serif;
             margin: 0;
-            padding: 30px;
-            height: 100vh;
+            padding: 20px;
+            min-height: 100vh;
             box-sizing: border-box;
+            /* 採用網格佈局，更像專業監控面板 */
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+
+        /* 頂部標題列 */
+        .header {
+            grid-column: 1 / -1;
             display: flex;
-            gap: 30px;
-            background-image: radial-gradient(circle at top right, #1e293b, #0f172a);
+            align-items: center;
+            padding: 10px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header .live-badge {
+            margin-left: auto;
+            background: var(--accent-green);
+            color: #000;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            animation: pulse-bg 2s infinite;
         }
 
         .left-panel {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 30px;
-            max-width: 500px;
-        }
-
-        .right-panel {
-            flex: 1.5;
-            display: flex;
-            flex-direction: column;
-            background: #000000;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
+            gap: 20px;
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
-            padding: 25px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
         }
+
+        /* 頂部裝飾線 */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+        }
+        .card.cpu-card::before { background: var(--accent-blue); }
+        .card.ram-card::before { background: var(--accent-yellow); }
+        .card.pm2-card::before { background: var(--accent-green); }
 
         .card h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            margin: 0 0 15px 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        /* 進度條樣式 */
-        .stat-row {
-            margin-bottom: 15px;
-        }
-        .stat-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-            color: var(--text-muted);
-        }
-        .stat-value {
+        /* 巨型數據顯示 (致敬 Netdata 風格) */
+        .big-data {
             font-family: 'JetBrains Mono', monospace;
-            color: var(--text-main);
-            font-weight: 700;
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
         }
+        .big-data .unit {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* 科技感進度條 */
         .progress-bg {
-            background: #0f172a;
-            border-radius: 6px;
-            height: 10px;
+            background: #000;
+            border-radius: 4px;
+            height: 6px;
+            width: 100%;
             overflow: hidden;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+            margin-top: 15px;
         }
         .progress-bar {
             height: 100%;
-            border-radius: 6px;
-            transition: width 0.5s ease-out;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 表格樣式 */
+        /* 表格樣式優化 */
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
         th {
             text-align: left;
-            padding-bottom: 12px;
+            padding-bottom: 10px;
             color: var(--text-muted);
             font-weight: 500;
             border-bottom: 1px solid var(--border-color);
         }
         td {
-            padding: 12px 0;
-            border-bottom: 1px solid #233146;
+            padding: 10px 0;
+            border-bottom: 1px solid #222;
             font-family: 'JetBrains Mono', monospace;
         }
-        tr:last-child td { border-bottom: none; }
         
-        /* 狀態標籤 */
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            background: rgba(16, 185, 129, 0.15);
             color: var(--accent-green);
         }
-        .badge.offline {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--accent-red);
-        }
+        .badge.offline { color: var(--accent-red); }
+        
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 6px; height: 6px;
             border-radius: 50%;
             background-color: currentColor;
             box-shadow: 0 0 8px currentColor;
         }
-        .badge:not(.offline) .dot {
-            animation: pulse 2s infinite;
-        }
 
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
+        /* 終端機樣式優化 */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            background: #000000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
         }
-
-        /* 終端機樣式 */
         .terminal-header {
-            background: #1e293b;
-            padding: 12px 20px;
+            background: #1a1b1e;
+            padding: 10px 15px;
             display: flex;
             align-items: center;
             gap: 8px;
             border-bottom: 1px solid var(--border-color);
         }
-        .mac-btn {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
+        .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
         .close { background: #ff5f56; }
         .minimize { background: #ffbd2e; }
         .maximize { background: #27c93f; }
         .terminal-title {
             margin-left: 10px;
             color: var(--text-muted);
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
         }
-        
         .log-viewer {
             flex-grow: 1;
-            padding: 20px;
+            padding: 15px;
             color: var(--accent-green);
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            line-height: 1.6;
+            font-size: 0.85rem;
+            line-height: 1.5;
             overflow-y: auto;
             white-space: pre-wrap;
+        }
+
+        @keyframes pulse-bg {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* 響應式設計：螢幕太小時變成單欄 */
+        @media (max-width: 900px) {
+            body { grid-template-columns: 1fr; }
+            .right-panel { min-height: 400px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="left-panel">
-        <div class="card">
-            <h3>⚡ 系統資源監控</h3>
-            
-            <div class="stat-row">
-                <div class="stat-header">
-                    <span>CPU 使用率</span>
-                    <span class="stat-value" id="sys-cpu">-- %</span>
-                </div>
-                <div class="progress-bg">
-                    <div class="progress-bar" id="cpu-bar" style="width: 0%; background: var(--accent-blue);"></div>
-                </div>
-            </div>
+    <div class="header">
+        Oracle Cloud Monitor
+        <div class="live-badge">LIVE</div>
+    </div>
 
-            <div class="stat-row">
-                <div class="stat-header">
-                    <span>記憶體用量 (24GB)</span>
-                    <span class="stat-value" id="sys-ram">-- / -- GB</span>
-                </div>
-                <div class="progress-bg">
-                    <div class="progress-bar" id="ram-bar" style="width: 0%; background: var(--accent-green);"></div>
-                </div>
+    <div class="left-panel">
+        <!-- CPU 卡片 -->
+        <div class="card cpu-card">
+            <h3>Avg CPU Utilization</h3>
+            <div class="big-data" style="color: var(--accent-blue);">
+                <span id="sys-cpu-num">0.00</span><span class="unit">%</span>
+            </div>
+            <div class="progress-bg">
+                <div class="progress-bar" id="cpu-bar" style="width: 0%; background: var(--accent-blue);"></div>
             </div>
         </div>
 
-        <div class="card">
-            <h3>🚀 PM2 運作清單</h3>
+        <!-- RAM 卡片 -->
+        <div class="card ram-card">
+            <h3>Used RAM per Node</h3>
+            <div class="big-data" style="color: var(--accent-yellow);">
+                <span id="sys-ram-num">0.00</span><span class="unit">GB</span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                Total: <span id="sys-ram-total">24</span> GB
+            </div>
+            <div class="progress-bg">
+                <div class="progress-bar" id="ram-bar" style="width: 0%; background: var(--accent-yellow);"></div>
+            </div>
+        </div>
+
+        <!-- PM2 卡片 -->
+        <div class="card pm2-card">
+            <h3>PM2 Processes</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>服務名稱</th>
-                        <th>狀態</th>
+                        <th>APP</th>
+                        <th>STATUS</th>
                         <th>CPU</th>
                         <th>RAM</th>
-                        <th>重啟</th>
+                        <th>RESTARTS</th>
                     </tr>
                 </thead>
                 <tbody id="pm2-list">
-                    <tr><td colspan="5" style="text-align:center; color:#94a3b8;">載入中...</td></tr>
+                    <tr><td colspan="5" style="text-align:center; color:#888;">Fetching data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -237,13 +267,12 @@
             <div class="mac-btn close"></div>
             <div class="mac-btn minimize"></div>
             <div class="mac-btn maximize"></div>
-            <div class="terminal-title">bash - pm2 logs download_bot</div>
+            <div class="terminal-title">ubuntu@oracle:~ pm2 logs download_bot</div>
         </div>
-        <div class="log-viewer" id="log-viewer">等待連線中...</div>
+        <div class="log-viewer" id="log-viewer">Waiting for connection...</div>
     </div>
 
     <script>
-        // 把 IP 變數改成你的網域，或者直接把網域寫進 fetch 裡
         const API_BASE = "https://oracle.chiacheng1112.com"; 
 
         async function updateDashboard() {
@@ -252,11 +281,14 @@
                 const sysRes = await fetch(`${API_BASE}/api/status`);
                 const sysData = await sysRes.json();
                 
-                document.getElementById('sys-cpu').innerText = `${sysData.cpu_percent} %`;
+                // 讓數字像 Netdata 一樣顯示小數點
+                const cpuVal = parseFloat(sysData.cpu_percent).toFixed(2);
+                document.getElementById('sys-cpu-num').innerText = cpuVal;
                 document.getElementById('cpu-bar').style.width = `${sysData.cpu_percent}%`;
 
                 const ramPercent = (sysData.ram_used_gb / sysData.ram_total_gb) * 100;
-                document.getElementById('sys-ram').innerText = `${sysData.ram_used_gb} / ${sysData.ram_total_gb} GB`;
+                document.getElementById('sys-ram-num').innerText = parseFloat(sysData.ram_used_gb).toFixed(2);
+                document.getElementById('sys-ram-total').innerText = sysData.ram_total_gb;
                 document.getElementById('ram-bar').style.width = `${ramPercent}%`;
 
                 // 2. 更新 PM2 清單
@@ -269,11 +301,11 @@
                     const badgeClass = isOnline ? 'badge' : 'badge offline';
                     tableHTML += `
                         <tr>
-                            <td style="color: #f8fafc;">${p.name}</td>
+                            <td style="color: #fff;">${p.name}</td>
                             <td><span class="${badgeClass}"><span class="dot"></span>${p.status}</span></td>
                             <td>${p.cpu}%</td>
                             <td>${p.memory} MB</td>
-                            <td style="color: #ef4444;">${p.restarts}</td>
+                            <td style="color: var(--accent-red);">${p.restarts}</td>
                         </tr>
                     `;
                 });
@@ -285,17 +317,18 @@
                 const logViewer = document.getElementById('log-viewer');
                 
                 if(logViewer.innerText !== logData.logs) {
-                    logViewer.innerText = logData.logs || "尚無日誌紀錄...";
+                    logViewer.innerText = logData.logs || "No logs available...";
                     logViewer.scrollTop = logViewer.scrollHeight; 
                 }
 
             } catch (error) {
-                console.error("更新失敗:", error);
+                console.error("Fetch failed:", error);
             }
         }
 
         updateDashboard();
-        setInterval(updateDashboard, 1500);
+        // 稍微調快更新頻率，讓數據跳動更有實時感
+        setInterval(updateDashboard, 1000);
     </script>
 </body>
 </html>

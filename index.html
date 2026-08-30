@@ -233,22 +233,22 @@
             </div>
         </div>
 
-        <!-- 🌟 VPN 即時連線狀態卡片 -->
+        <!-- 🌟 VPN 服務健康與即時連線用戶卡片 -->
         <div class="card vpn-card">
             <h3>
-                VPN Active Clients
-                <span id="vpn-badge" class="badge offline"><span class="dot"></span>OFFLINE</span>
+                VPN Status & Clients
+                <span id="vpn-badge" class="badge offline"><span class="dot"></span>CHECKING</span>
             </h3>
             <table>
                 <thead>
                     <tr>
-                        <th>CLIENT / PEER</th>
+                        <th>CLIENT / INTERFACE</th>
                         <th>STATUS</th>
                         <th>DETAILS</th>
                     </tr>
                 </thead>
                 <tbody id="vpn-client-list">
-                    <tr><td colspan="3" style="text-align:center; color:#888;">檢查 VPN 連線中...</td></tr>
+                    <tr><td colspan="3" style="text-align:center; color:#888;">載入中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -288,7 +288,7 @@
 
         async function updateDashboard() {
             try {
-                // 1. 更新 CPU 與 RAM
+                // 1. 更新系統資源
                 const sysRes = await fetch(`${API_BASE}/api/status`);
                 const sysData = await sysRes.json();
                 document.getElementById('sys-cpu-num').innerText = parseFloat(sysData.cpu_percent).toFixed(2);
@@ -299,17 +299,17 @@
                 document.getElementById('sys-ram-total').innerText = sysData.ram_total_gb;
                 document.getElementById('ram-bar').style.width = `${ramPercent}%`;
 
-                // 2. 🌟 更新 VPN 狀態
+                // 2. 🌟 更新 VPN 服務與客戶端數據
                 const procRes = await fetch(`${API_BASE}/api/system-processes`);
                 const procData = await procRes.json();
 
                 const vpnBadge = document.getElementById('vpn-badge');
-                if (procData.vpn_status === 'online') {
+                if (procData.service_running) {
                     vpnBadge.className = 'badge';
-                    vpnBadge.innerHTML = '<span class="dot"></span>ONLINE';
+                    vpnBadge.innerHTML = '<span class="dot"></span>SERVICE RUNNING';
                 } else {
                     vpnBadge.className = 'badge offline';
-                    vpnBadge.innerHTML = '<span class="dot"></span>OFFLINE';
+                    vpnBadge.innerHTML = '<span class="dot"></span>SERVICE STOPPED';
                 }
 
                 let clientHTML = '';
@@ -318,13 +318,13 @@
                         clientHTML += `
                             <tr>
                                 <td style="color: var(--accent-green);">${c.peer}</td>
-                                <td style="color: #fff;">${c.handshake}</td>
-                                <td style="color: var(--accent-yellow);">${c.transfer}</td>
+                                <td style="color: #fff;">${c.status}</td>
+                                <td style="color: var(--accent-yellow);">${c.details}</td>
                             </tr>
                         `;
                     });
                 } else {
-                    clientHTML = `<tr><td colspan="3" style="text-align:center; color:#888;">目前無人連線 (或未啟動)</td></tr>`;
+                    clientHTML = `<tr><td colspan="3" style="text-align:center; color:#888;">目前無外部用戶連線</td></tr>`;
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 

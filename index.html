@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Dashboard | Pro Edition</title>
+    <title>Oracle Cloud God Mode Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -76,7 +76,6 @@
             background: var(--border-color);
         }
         .card.cpu-card::before { background: var(--accent-blue); }
-        .card.ram-card::before { background: var(--accent-yellow); }
         .card.vpn-card::before { background: var(--accent-red); }
         .card.pm2-card::before { background: var(--accent-green); }
 
@@ -93,9 +92,9 @@
 
         .big-data {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             display: flex;
             align-items: baseline;
             gap: 5px;
@@ -112,7 +111,7 @@
             height: 6px;
             width: 100%;
             overflow: hidden;
-            margin-top: 15px;
+            margin-top: 10px;
         }
         .progress-bar {
             height: 100%;
@@ -206,12 +205,11 @@
 <body>
 
     <div class="header">
-        Oracle Cloud Monitor (God Mode)
+        Oracle Cloud God Mode Dashboard
         <div class="live-badge">LIVE</div>
     </div>
 
     <div class="left-panel">
-        <!-- CPU 卡片 -->
         <div class="card cpu-card">
             <h3>CPU Utilization</h3>
             <div class="big-data" style="color: var(--accent-blue);">
@@ -222,38 +220,25 @@
             </div>
         </div>
 
-        <!-- RAM 卡片 -->
-        <div class="card ram-card">
-            <h3>Memory Usage (Total: <span id="sys-ram-total">24</span> GB)</h3>
-            <div class="big-data" style="color: var(--accent-yellow);">
-                <span id="sys-ram-num">0.00</span><span class="unit">GB</span>
-            </div>
-            <div class="progress-bg">
-                <div class="progress-bar" id="ram-bar" style="width: 0%; background: var(--accent-yellow);"></div>
-            </div>
-        </div>
-
-        <!-- 🌟 VPN 與系統行程監控卡片 -->
         <div class="card vpn-card">
             <h3>
-                System & VPN Status
+                VPN Active Clients
                 <span id="vpn-badge" class="badge offline"><span class="dot"></span>OFFLINE</span>
             </h3>
             <table>
                 <thead>
                     <tr>
-                        <th>TOP PROCESS</th>
-                        <th>CPU %</th>
-                        <th>RAM %</th>
+                        <th>CLIENT / PEER</th>
+                        <th>LAST HANDSHAKE</th>
+                        <th>TRAFFIC</th>
                     </tr>
                 </thead>
-                <tbody id="top-process-list">
-                    <tr><td colspan="3" style="text-align:center; color:#888;">Loading...</td></tr>
+                <tbody id="vpn-client-list">
+                    <tr><td colspan="3" style="text-align:center; color:#888;">Scanning VPN clients...</td></tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- PM2 卡片 -->
         <div class="card pm2-card">
             <h3>PM2 Processes</h3>
             <table>
@@ -291,44 +276,41 @@
                 // 1. 更新系統資源
                 const sysRes = await fetch(`${API_BASE}/api/status`);
                 const sysData = await sysRes.json();
-                
                 document.getElementById('sys-cpu-num').innerText = parseFloat(sysData.cpu_percent).toFixed(2);
                 document.getElementById('cpu-bar').style.width = `${sysData.cpu_percent}%`;
 
-                const ramPercent = (sysData.ram_used_gb / sysData.ram_total_gb) * 100;
-                document.getElementById('sys-ram-num').innerText = parseFloat(sysData.ram_used_gb).toFixed(2);
-                document.getElementById('sys-ram-total').innerText = sysData.ram_total_gb;
-                document.getElementById('ram-bar').style.width = `${ramPercent}%`;
-
-                // 2. 🌟 更新 VPN 與系統行程
+                // 2. 🌟 更新 VPN 連線客戶端名單
                 const procRes = await fetch(`${API_BASE}/api/system-processes`);
                 const procData = await procRes.json();
 
                 const vpnBadge = document.getElementById('vpn-badge');
                 if (procData.vpn_status === 'online') {
                     vpnBadge.className = 'badge';
-                    vpnBadge.innerHTML = '<span class="dot"></span>SECURE (ONLINE)';
+                    vpnBadge.innerHTML = '<span class="dot"></span>ONLINE';
                 } else {
                     vpnBadge.className = 'badge offline';
                     vpnBadge.innerHTML = '<span class="dot"></span>OFFLINE';
                 }
 
-                let topHTML = '';
-                procData.top_processes.forEach(p => {
-                    topHTML += `
-                        <tr>
-                            <td style="color: #fff;">${p.name}</td>
-                            <td style="color: var(--accent-blue);">${p.cpu}%</td>
-                            <td style="color: var(--accent-yellow);">${p.ram}%</td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('top-process-list').innerHTML = topHTML;
+                let clientHTML = '';
+                if (procData.vpn_clients && procData.vpn_clients.length > 0) {
+                    procData.vpn_clients.forEach(c => {
+                        clientHTML += `
+                            <tr>
+                                <td style="color: var(--accent-green);">${c.peer}</td>
+                                <td style="color: #fff;">${c.handshake}</td>
+                                <td style="color: var(--accent-yellow);">${c.transfer}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    clientHTML = `<tr><td colspan="3" style="text-align:center; color:#888;">目前無人連線 (或未啟動)</td></tr>`;
+                }
+                document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
                 // 3. 更新 PM2 清單
                 const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
-                
                 let tableHTML = '';
                 pm2Data.forEach(p => {
                     const isOnline = p.status === 'online';
@@ -349,7 +331,6 @@
                 const logRes = await fetch(`${API_BASE}/api/logs`);
                 const logData = await logRes.json();
                 const logViewer = document.getElementById('log-viewer');
-                
                 if(logViewer.innerText !== logData.logs) {
                     logViewer.innerText = logData.logs || "No logs available...";
                     logViewer.scrollTop = logViewer.scrollHeight; 

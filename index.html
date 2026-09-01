@@ -211,7 +211,6 @@
     </div>
 
     <div class="left-panel">
-        <!-- CPU 卡片 -->
         <div class="card cpu-card">
             <h3>CPU Utilization</h3>
             <div class="big-data" style="color: var(--accent-blue);">
@@ -222,7 +221,6 @@
             </div>
         </div>
 
-        <!-- 記憶體用量 (24GB) -->
         <div class="card ram-card">
             <h3>Memory Usage (Total: <span id="sys-ram-total">24</span> GB)</h3>
             <div class="big-data" style="color: var(--accent-yellow);">
@@ -233,7 +231,7 @@
             </div>
         </div>
 
-        <!-- 🌟 VPN 服務健康與即時連線用戶卡片 -->
+        <!-- 🌟 重新排版的 VPN 流量數據卡片 -->
         <div class="card vpn-card">
             <h3>
                 VPN Status & Clients
@@ -242,9 +240,9 @@
             <table>
                 <thead>
                     <tr>
-                        <th>CLIENT / INTERFACE</th>
-                        <th>STATUS</th>
-                        <th>DETAILS</th>
+                        <th>USER / IP</th>
+                        <th>TRAFFIC (↓/↑)</th>
+                        <th>CONNECTED AT</th>
                     </tr>
                 </thead>
                 <tbody id="vpn-client-list">
@@ -253,7 +251,6 @@
             </table>
         </div>
 
-        <!-- PM2 卡片 -->
         <div class="card pm2-card">
             <h3>PM2 Processes</h3>
             <table>
@@ -288,7 +285,6 @@
 
         async function updateDashboard() {
             try {
-                // 1. 更新系統資源
                 const sysRes = await fetch(`${API_BASE}/api/status`);
                 const sysData = await sysRes.json();
                 document.getElementById('sys-cpu-num').innerText = parseFloat(sysData.cpu_percent).toFixed(2);
@@ -299,7 +295,7 @@
                 document.getElementById('sys-ram-total').innerText = sysData.ram_total_gb;
                 document.getElementById('ram-bar').style.width = `${ramPercent}%`;
 
-                // 2. 🌟 更新 VPN 服務與客戶端數據
+                // 🌟 更新 VPN
                 const procRes = await fetch(`${API_BASE}/api/system-processes`);
                 const procData = await procRes.json();
 
@@ -317,9 +313,9 @@
                     procData.vpn_clients.forEach(c => {
                         clientHTML += `
                             <tr>
-                                <td style="color: var(--accent-green);">${c.peer}</td>
-                                <td style="color: #fff;">${c.status}</td>
-                                <td style="color: var(--accent-yellow);">${c.details}</td>
+                                <td style="color: var(--accent-green); font-weight: 500;">${c.peer}</td>
+                                <td style="color: var(--accent-blue);">${c.status}</td>
+                                <td style="color: var(--text-muted); font-size: 0.8rem;">${c.details}</td>
                             </tr>
                         `;
                     });
@@ -328,7 +324,6 @@
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
-                // 3. 更新 PM2
                 const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
                 let tableHTML = '';
@@ -347,7 +342,6 @@
                 });
                 document.getElementById('pm2-list').innerHTML = tableHTML;
 
-                // 4. 更新日誌
                 const logRes = await fetch(`${API_BASE}/api/logs`);
                 const logData = await logRes.json();
                 const logViewer = document.getElementById('log-viewer');
@@ -362,7 +356,7 @@
         }
 
         updateDashboard();
-        setInterval(updateDashboard, 1500);
+        setInterval(updateDashboard, 1500); // 1.5秒刷新一次前端畫面
     </script>
 </body>
 </html>

@@ -254,7 +254,7 @@
                     // 密碼正確，隱藏登入畫面並啟動監控
                     document.getElementById('login-overlay').style.display = 'none';
                     updateDashboard();
-                    dashboardInterval = setInterval(updateDashboard, 1500);
+                    dashboardInterval = setInterval(updateDashboard, 500);
                 } else {
                     // 密碼錯誤
                     const err = document.getElementById('login-err');

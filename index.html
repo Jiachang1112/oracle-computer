@@ -206,12 +206,25 @@
         </div>
     </div>
 
+    <!-- 🌟 更新後的登入介面：整合密碼與 Google 登入按鈕 -->
     <div id="login-overlay">
         <div class="login-box">
             <h2>GOD MODE</h2>
             <p>Authentication Required</p>
             <input type="password" id="pwd-input" placeholder="Enter Password..." autocomplete="off">
-            <div id="login-err" class="login-err">Access Denied: 密碼錯誤</div>
+            
+            <div style="margin: 18px 0; color: var(--text-muted); font-size: 0.8rem; display: flex; align-items: center;">
+                <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                <span style="padding: 0 10px;">OR</span>
+                <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            </div>
+
+            <button id="google-login-btn" style="width: 100%; padding: 10px; background: #fff; color: #000; border: none; border-radius: 4px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18px" height="18px"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
+                Sign in with Google
+            </button>
+
+            <div id="login-err" class="login-err">Access Denied: 驗證失敗</div>
         </div>
     </div>
 
@@ -336,16 +349,22 @@
         const API_BASE = "https://api.chiacheng1112.com"; 
         let dashboardInterval;
 
-        // 登入驗證邏輯
+        // 🌟 獨立出解鎖上帝面板的函數，讓密碼和 Google 登入可以共用
+        window.loginSuccess = function() {
+            document.getElementById('login-overlay').style.display = 'none';
+            updateDashboard();
+            dashboardInterval = setInterval(updateDashboard, 500);
+        };
+
+        // 密碼登入驗證邏輯
         document.getElementById('pwd-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 if (this.value === 'jiachang') {
-                    document.getElementById('login-overlay').style.display = 'none';
-                    updateDashboard();
-                    dashboardInterval = setInterval(updateDashboard, 500);
+                    window.loginSuccess();
                 } else {
                     const err = document.getElementById('login-err');
                     err.style.display = 'block';
+                    err.innerText = "Access Denied: 密碼錯誤";
                     this.value = '';
                     this.parentElement.style.animation = 'shake 0.4s';
                     setTimeout(() => { this.parentElement.style.animation = ''; }, 400);
@@ -428,7 +447,7 @@
                 document.getElementById('sys-net-recv').innerText = sysData.net_recv_mb;
                 document.getElementById('sys-net-sent').innerText = sysData.net_sent_mb;
 
-                // 🌟 更新目前桌面開啟視窗與 Chrome 分頁
+                // 更新目前桌面開啟視窗與 Chrome 分頁
                 try {
                     const winRes = await fetch(`${API_BASE}/api/open-windows`);
                     const winData = await winRes.json();
@@ -532,6 +551,63 @@
             } catch (error) {
                 console.error("Fetch failed:", error);
             }
+        }
+    </script>
+
+    <!-- 🌟 Firebase Google 登入模組 -->
+    <script type="module">
+        // 匯入 Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // 你的 Firebase 專案設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxVbbIGQkgmfVOeO12M3ibqMISO20fiI8",
+            authDomain: "oracle-7815b.firebaseapp.com",
+            projectId: "oracle-7815b",
+            storageBucket: "oracle-7815b.firebasestorage.app",
+            messagingSenderId: "387307365749",
+            appId: "1:387307365749:web:5509025514421232745f3c",
+            measurementId: "G-XCN59E4B31"
+        };
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const googleBtn = document.getElementById('google-login-btn');
+        const errDisplay = document.getElementById('login-err');
+
+        if(googleBtn) {
+            googleBtn.addEventListener('click', async () => {
+                const originalText = googleBtn.innerHTML;
+                googleBtn.innerHTML = "⏳ Authenticating...";
+                try {
+                    // 呼叫 Google 登入彈窗
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+                    
+                    // 🔒 極度重要：防駭客鎖定！只有你本人的信箱可以登入
+                    // ⚠️⚠️⚠️ 請務必將下方引號內的信箱換成你自己的 Google 信箱！ ⚠️⚠️⚠️
+                    const MY_EMAIL = "bruce9811123@gmail.com"; 
+                    
+                    if (user.email === MY_EMAIL) {
+                        window.loginSuccess(); // 帳號正確，解鎖上帝面板
+                    } else {
+                        // 駭客防護：如果信箱不符，強制登出並顯示錯誤
+                        await signOut(auth);
+                        errDisplay.innerText = "Access Denied: 未授權的 Google 帳號";
+                        errDisplay.style.display = 'block';
+                        googleBtn.innerHTML = originalText;
+                    }
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                    errDisplay.innerText = "Error: 無法連線至 Google 驗證";
+                    errDisplay.style.display = 'block';
+                    googleBtn.innerHTML = originalText;
+                }
+            });
         }
     </script>
 </body>

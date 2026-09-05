@@ -120,6 +120,7 @@
         .card.sys-card::before { background: #fff; }
         .card.vpn-card::before { background: var(--accent-red); }
         .card.pm2-card::before { background: var(--accent-green); }
+        .card.win-card::before { background: var(--accent-blue); }
 
         .card h3 {
             margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-muted);
@@ -146,10 +147,10 @@
         .badge.offline { background: rgba(255, 51, 102, 0.15); color: var(--accent-red); }
         .dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; box-shadow: 0 0 6px currentColor; }
 
-        /* 🌟 右側面板：改為上下分割 */
+        /* 🌟 右側面板 */
         .right-panel { display: flex; flex-direction: column; gap: 20px; }
         
-        /* 🌟 PM2 快捷控制器 (上半部) */
+        /* PM2 快捷控制器 */
         .pm2-controller { background: #000; border-radius: 8px; border: 1px solid var(--border-color); padding: 15px; }
         .pm2-ctrl-title { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 12px; font-weight: 700; }
         .pm2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -159,7 +160,7 @@
         .ctrl-btns .restart:hover { color: #000; background: var(--accent-yellow); border-color: var(--accent-yellow); }
         .ctrl-btns .stop:hover { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
 
-        /* 🌟 終端機日誌 (下半部：微縮版) */
+        /* 終端機日誌 */
         .terminal-section { flex-grow: 1; display: flex; flex-direction: column; background: #000; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; height: 350px; }
         .terminal-header { background: #1a1b1e; padding: 10px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
         .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
@@ -167,9 +168,11 @@
         .terminal-title { margin-left: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
         .log-viewer { flex-grow: 1; padding: 15px; color: var(--accent-green); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5; overflow-y: auto; white-space: pre-wrap; }
 
+        .window-item { background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 12px; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; word-break: break-all; }
+
         @media (max-width: 900px) { body { grid-template-columns: 1fr; } .right-panel { min-height: 500px; } .top-cards { grid-template-columns: 1fr; } .pm2-grid { grid-template-columns: 1fr; } }
 
-        /* 🌟 專屬浮動提示通知 (Toast) */
+        /* 專屬浮動提示通知 (Toast) */
         #toast-container {
             position: fixed; bottom: 20px; right: 20px; z-index: 10000;
             display: flex; flex-direction: column; gap: 10px;
@@ -189,10 +192,8 @@
 </head>
 <body>
 
-    <!-- 🌟 浮動通知容器 -->
     <div id="toast-container"></div>
 
-    <!-- 🌟 VPN 詳細資訊互動彈窗 -->
     <div id="vpn-modal">
         <div class="modal-box">
             <h3 id="modal-user">👤 User</h3>
@@ -205,7 +206,6 @@
         </div>
     </div>
 
-    <!-- 🌟 加密登入畫面 -->
     <div id="login-overlay">
         <div class="login-box">
             <h2>GOD MODE</h2>
@@ -223,7 +223,6 @@
     <div class="left-panel">
         
         <div class="top-cards">
-            <!-- CPU 卡片 -->
             <div class="card cpu-card">
                 <h3>CPU Utilization</h3>
                 <div class="big-data" style="color: var(--accent-blue);">
@@ -232,7 +231,6 @@
                 <div class="progress-bg"><div class="progress-bar" id="cpu-bar" style="width: 0%; background: var(--accent-blue);"></div></div>
             </div>
 
-            <!-- RAM 卡片 -->
             <div class="card ram-card">
                 <h3>Memory Usage</h3>
                 <div class="big-data" style="color: var(--accent-yellow);">
@@ -241,7 +239,6 @@
                 <div class="progress-bg"><div class="progress-bar" id="ram-bar" style="width: 0%; background: var(--accent-yellow);"></div></div>
             </div>
             
-            <!-- 硬碟 卡片 -->
             <div class="card disk-card">
                 <h3>Storage (Disk /)</h3>
                 <div class="big-data" style="color: var(--accent-purple);">
@@ -250,7 +247,6 @@
                 <div class="progress-bg"><div class="progress-bar" id="disk-bar" style="width: 0%; background: var(--accent-purple);"></div></div>
             </div>
 
-            <!-- 主機系統與全球流量狀態 -->
             <div class="card sys-card">
                 <h3>System Overview</h3>
                 <table style="margin-top: 10px;">
@@ -270,7 +266,13 @@
             </div>
         </div>
 
-        <!-- VPN 狀態 -->
+        <div class="card win-card">
+            <h3>ACTIVE DESKTOP WINDOWS & CHROME TABS</h3>
+            <div id="open-windows-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
+                <div style="color: #666; font-size: 0.8rem;">偵測中...</div>
+            </div>
+        </div>
+
         <div class="card vpn-card">
             <h3>
                 VPN Status & Clients
@@ -290,7 +292,6 @@
             </table>
         </div>
 
-        <!-- PM2 狀態 -->
         <div class="card pm2-card">
             <h3>PM2 Processes</h3>
             <table>
@@ -310,10 +311,8 @@
         </div>
     </div>
 
-    <!-- 🌟 右側面板雙效升級區 -->
     <div class="right-panel">
         
-        <!-- 上半部：PM2 快捷控制器 -->
         <div class="pm2-controller">
             <div class="pm2-ctrl-title">⚡ PM2 Quick Controller</div>
             <div class="pm2-grid" id="pm2-control-grid">
@@ -321,13 +320,12 @@
             </div>
         </div>
 
-        <!-- 下半部：終端機日誌 -->
         <div class="terminal-section">
             <div class="terminal-header">
                 <div class="mac-btn close"></div>
                 <div class="mac-btn minimize"></div>
                 <div class="mac-btn maximize"></div>
-                <div class="terminal-title">ubuntu@oracle:~ pm2 logs</div>
+                <div class="terminal-title">ubuntu@oracle:~ pm2 logs & actions</div>
             </div>
             <div class="log-viewer" id="log-viewer">Waiting for authentication...</div>
         </div>
@@ -338,13 +336,13 @@
         const API_BASE = "https://api.chiacheng1112.com"; 
         let dashboardInterval;
 
-        // 🌟 登入驗證邏輯
+        // 登入驗證邏輯
         document.getElementById('pwd-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 if (this.value === 'jiachang') {
                     document.getElementById('login-overlay').style.display = 'none';
                     updateDashboard();
-                    dashboardInterval = setInterval(updateDashboard, 500); // 維持 0.5 秒高速更新
+                    dashboardInterval = setInterval(updateDashboard, 500);
                 } else {
                     const err = document.getElementById('login-err');
                     err.style.display = 'block';
@@ -359,7 +357,6 @@
         style.innerHTML = `@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); } }`;
         document.head.appendChild(style);
 
-        // 🌟 開關 VPN 彈窗函數
         function openVpnModal(user, realIp, virtualIp, rx, tx, time) {
             document.getElementById('modal-user').innerText = `👤 ${user}`;
             document.getElementById('modal-real-ip').innerText = realIp;
@@ -374,7 +371,6 @@
             document.getElementById('vpn-modal').style.display = 'none';
         }
 
-        // 🌟 產生浮動通知的函數
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -383,7 +379,6 @@
             toast.innerHTML = message;
             container.appendChild(toast);
             
-            // 3秒後自動消失
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transition = 'opacity 0.3s';
@@ -391,7 +386,6 @@
             }, 3000);
         }
 
-        // 🌟 PM2 點擊發送 API 請求 (加入即時回饋)
         async function pm2Action(action, appName) {
             const actionText = action === 'restart' ? '重啟' : '停止';
             showToast(`⏳ 正在對 ${appName} 發送${actionText}指令...`, 'success');
@@ -402,9 +396,9 @@
                 
                 if(data.status === "success") {
                     showToast(`✅ 已成功${actionText} ${appName}！`, 'success');
-                    updateDashboard(); // 動作後立刻刷新狀態
+                    updateDashboard();
                 } else {
-                    showToast(`⚠️ 操作失敗！請確認 Oracle 主機的 server.py 有更新到最新版！`, 'error');
+                    showToast(`⚠️ 操作失敗！請確認後端 API 正常`, 'error');
                 }
             } catch (error) {
                 showToast(`❌ 連線失敗！後端 API 可能沒有回應。`, 'error');
@@ -434,7 +428,27 @@
                 document.getElementById('sys-net-recv').innerText = sysData.net_recv_mb;
                 document.getElementById('sys-net-sent').innerText = sysData.net_sent_mb;
 
-                // 更新 VPN (加入 Click 互動事件)
+                // 🌟 更新目前桌面開啟視窗與 Chrome 分頁
+                try {
+                    const winRes = await fetch(`${API_BASE}/api/open-windows`);
+                    const winData = await winRes.json();
+                    let winHTML = '';
+                    if (winData.windows && winData.windows.length > 0) {
+                        winData.windows.forEach(w => {
+                            let icon = '🔲';
+                            if (w.toLowerCase().includes('chromium') || w.toLowerCase().includes('chrome')) icon = '🌐';
+                            else if (w.toLowerCase().includes('terminal')) icon = '💻';
+                            else if (w.toLowerCase().includes('rustdesk')) icon = '🖥️';
+
+                            winHTML += `<div class="window-item"><span>${icon}</span><span style="color:#fff;">${w}</span></div>`;
+                        });
+                    } else {
+                        winHTML = `<div style="color: #666; font-size: 0.8rem;">目前無開啟中的視窗</div>`;
+                    }
+                    document.getElementById('open-windows-list').innerHTML = winHTML;
+                } catch(e) {}
+
+                // 更新 VPN
                 const procRes = await fetch(`${API_BASE}/api/system-processes`);
                 const procData = await procRes.json();
 
@@ -450,7 +464,6 @@
                 let clientHTML = '';
                 if (procData.vpn_clients && procData.vpn_clients.length > 0) {
                     procData.vpn_clients.forEach(c => {
-                        // 支援新舊 API 格式解析
                         const user = c.user || c.peer || 'Unknown';
                         const realIp = c.real_ip || 'N/A';
                         const virtualIp = c.virtual_ip || '10.8.0.x';
@@ -471,7 +484,7 @@
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
-                // 更新 PM2 與右側控制器按鈕
+                // 更新 PM2 控制器按鈕
                 const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
                 let tableHTML = '';
@@ -481,7 +494,6 @@
                     const isOnline = p.status === 'online';
                     const badgeClass = isOnline ? 'badge' : 'badge offline';
                     
-                    // 左側表格
                     tableHTML += `
                         <tr>
                             <td style="color: #fff;">${p.name}</td>
@@ -492,7 +504,6 @@
                         </tr>
                     `;
 
-                    // 右側獨立控制卡片
                     ctrlHTML += `
                         <div class="pm2-ctrl-card">
                             <span class="pm2-ctrl-name">${p.name}</span>
@@ -505,12 +516,11 @@
                 });
                 document.getElementById('pm2-list').innerHTML = tableHTML;
 
-                // 🌟 加上這層防護：只有當程式數量或名稱改變時，才重新渲染按鈕區塊，避免每 0.5 秒按鈕就被摧毀一次
                 if (document.getElementById('pm2-control-grid').innerHTML !== ctrlHTML) {
                     document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
                 }
 
-                // 更新日誌
+                // 更新即時日誌
                 const logRes = await fetch(`${API_BASE}/api/logs`);
                 const logData = await logRes.json();
                 const logViewer = document.getElementById('log-viewer');

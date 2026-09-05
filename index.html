@@ -90,19 +90,31 @@
         .clickable-row { cursor: pointer; transition: background 0.2s; }
         .clickable-row:hover { background: rgba(255, 255, 255, 0.08); }
 
+        /* 🌟 Header 與 RustDesk 按鈕 */
         .header {
             grid-column: 1 / -1; display: flex; align-items: center;
             padding: 10px 20px; background: var(--card-bg);
             border: 1px solid var(--border-color); border-radius: 8px;
             font-weight: 700; letter-spacing: 1px;
         }
+        .header-controls {
+            margin-left: auto; display: flex; align-items: center; gap: 15px;
+        }
         .header .live-badge {
-            margin-left: auto; background: var(--accent-green); color: #000;
+            background: var(--accent-green); color: #000;
             padding: 3px 10px; border-radius: 4px; font-size: 0.8rem;
+        }
+        .rustdesk-btn {
+            background: var(--accent-blue); color: #fff; border: none;
+            padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
+            font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.2); display: flex; align-items: center; gap: 6px;
+        }
+        .rustdesk-btn:hover {
+            background: #33aaff; box-shadow: 0 0 15px rgba(0, 153, 255, 0.4); transform: translateY(-1px);
         }
 
         .left-panel { display: flex; flex-direction: column; gap: 20px; }
-        
         .top-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
         .card {
@@ -206,6 +218,20 @@
         </div>
     </div>
 
+    <div id="rustdesk-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9997; flex-direction: column; backdrop-filter: blur(5px);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #111; border-bottom: 1px solid var(--accent-blue);">
+            <div style="color: var(--accent-blue); font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                🖥️ RustDesk Web Client
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">(授權完成：支援剪貼簿傳輸)</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="window.open('https://web.rustdesk.com/', '_blank')" style="background: #222; border: 1px solid #444; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; transition: 0.2s;">↗ 在新分頁開啟</button>
+                <button onclick="closeRustDeskModal()" style="background: var(--accent-red); border: none; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; transition: 0.2s;">關閉視窗</button>
+            </div>
+        </div>
+        <iframe src="https://web.rustdesk.com/" allow="clipboard-read; clipboard-write; display-capture" style="width: 100%; flex-grow: 1; border: none; background: #222;"></iframe>
+    </div>
+
     <div id="login-overlay">
         <div class="login-box">
             <h2>GOD MODE</h2>
@@ -229,7 +255,13 @@
 
     <div class="header">
         Oracle Cloud God Mode Dashboard
-        <div class="live-badge">LIVE</div>
+        <div class="header-controls">
+            <button class="rustdesk-btn" onclick="openRustDeskModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12zM2 3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2z"/><path d="M5.5 13a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5z"/><path d="M4 14.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/></svg>
+                RUSTDESK WEB
+            </button>
+            <div class="live-badge">LIVE</div>
+        </div>
     </div>
 
     <div class="left-panel">
@@ -347,6 +379,14 @@
     <script>
         const API_BASE = "https://api.chiacheng1112.com"; 
         let dashboardInterval;
+
+        // 🌟 打開/關閉 RustDesk 網頁版視窗
+        function openRustDeskModal() {
+            document.getElementById('rustdesk-modal').style.display = 'flex';
+        }
+        function closeRustDeskModal() {
+            document.getElementById('rustdesk-modal').style.display = 'none';
+        }
 
         // 🌟 解鎖上帝面板函數 (支援儲存登入狀態)
         window.loginSuccess = function(saveLocal = false) {
@@ -514,7 +554,7 @@
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
-                // 🌟 將 VPN 狀態同步到 Firebase (觸發前會自動檢查是否有變動)
+                // 🌟 將 VPN 狀態同步到 Firebase
                 if (window.syncVpnToFirebase) {
                     window.syncVpnToFirebase(procData.vpn_clients || []);
                 }
@@ -592,12 +632,12 @@
 
         const MY_EMAIL = "bruce9811123@gmail.com"; 
 
-        // 🌟 自動監聽 Google 登入狀態 (記住登入)
+        // 🌟 自動監聽 Google 登入狀態
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === MY_EMAIL) {
-                window.loginSuccess(false); // 帳號正確，自動解鎖
+                window.loginSuccess(false); 
             } else if (user && user.email !== MY_EMAIL) {
-                signOut(auth); // 閒雜人等強制登出
+                signOut(auth); 
             }
         });
 
@@ -628,19 +668,17 @@
             });
         }
 
-        // 🌟 將 VPN 狀態寫入 Firestore 的功能 (附帶狀態檢查機制避免浪費額度)
+        // 🌟 將 VPN 狀態寫入 Firestore
         let lastVpnStateStr = null;
         
         window.syncVpnToFirebase = async function(clients) {
             const currentStateStr = JSON.stringify(clients);
             
-            // 如果 VPN 狀態沒有任何變化，就不要執行寫入，避免把 Firebase 每日配額用光
             if (currentStateStr === lastVpnStateStr) return; 
             
             lastVpnStateStr = currentStateStr;
 
             try {
-                // 將資料存進 Firestore 的 "vpn_status/current_connections" 節點
                 await setDoc(doc(db, "vpn_status", "current_connections"), {
                     updatedAt: serverTimestamp(),
                     active_users: clients,

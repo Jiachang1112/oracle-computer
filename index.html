@@ -206,7 +206,6 @@
         </div>
     </div>
 
-    <!-- 🌟 更新後的登入介面：整合密碼與 Google 登入按鈕 -->
     <div id="login-overlay">
         <div class="login-box">
             <h2>GOD MODE</h2>
@@ -349,18 +348,30 @@
         const API_BASE = "https://api.chiacheng1112.com"; 
         let dashboardInterval;
 
-        // 🌟 獨立出解鎖上帝面板的函數，讓密碼和 Google 登入可以共用
-        window.loginSuccess = function() {
+        // 🌟 解鎖上帝面板函數 (支援儲存登入狀態)
+        window.loginSuccess = function(saveLocal = false) {
+            if (saveLocal) {
+                localStorage.setItem('godModeAuth', 'true'); // 記住密碼登入狀態
+            }
             document.getElementById('login-overlay').style.display = 'none';
-            updateDashboard();
-            dashboardInterval = setInterval(updateDashboard, 500);
+            
+            // 避免重複啟動 interval
+            if (!dashboardInterval) {
+                updateDashboard();
+                dashboardInterval = setInterval(updateDashboard, 500);
+            }
         };
+
+        // 🌟 網頁一載入就檢查是否曾經用密碼登入過
+        if (localStorage.getItem('godModeAuth') === 'true') {
+            window.loginSuccess(false);
+        }
 
         // 密碼登入驗證邏輯
         document.getElementById('pwd-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 if (this.value === 'jiachang') {
-                    window.loginSuccess();
+                    window.loginSuccess(true); // 帶入 true 讓系統記住
                 } else {
                     const err = document.getElementById('login-err');
                     err.style.display = 'block';
@@ -503,6 +514,11 @@
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
+                // 🌟 將 VPN 狀態同步到 Firebase (觸發前會自動檢查是否有變動)
+                if (window.syncVpnToFirebase) {
+                    window.syncVpnToFirebase(procData.vpn_clients || []);
+                }
+
                 // 更新 PM2 控制器按鈕
                 const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
@@ -554,13 +570,11 @@
         }
     </script>
 
-    <!-- 🌟 Firebase Google 登入模組 -->
     <script type="module">
-        // 匯入 Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // 你的 Firebase 專案設定
         const firebaseConfig = {
             apiKey: "AIzaSyDxVbbIGQkgmfVOeO12M3ibqMISO20fiI8",
             authDomain: "oracle-7815b.firebaseapp.com",
@@ -571,11 +585,23 @@
             measurementId: "G-XCN59E4B31"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
+        const MY_EMAIL = "bruce9811123@gmail.com"; 
+
+        // 🌟 自動監聽 Google 登入狀態 (記住登入)
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === MY_EMAIL) {
+                window.loginSuccess(false); // 帳號正確，自動解鎖
+            } else if (user && user.email !== MY_EMAIL) {
+                signOut(auth); // 閒雜人等強制登出
+            }
+        });
+
+        // 🌟 Google 登入按鈕事件
         const googleBtn = document.getElementById('google-login-btn');
         const errDisplay = document.getElementById('login-err');
 
@@ -584,18 +610,10 @@
                 const originalText = googleBtn.innerHTML;
                 googleBtn.innerHTML = "⏳ Authenticating...";
                 try {
-                    // 呼叫 Google 登入彈窗
                     const result = await signInWithPopup(auth, provider);
-                    const user = result.user;
-                    
-                    // 🔒 極度重要：防駭客鎖定！只有你本人的信箱可以登入
-                    // ⚠️⚠️⚠️ 請務必將下方引號內的信箱換成你自己的 Google 信箱！ ⚠️⚠️⚠️
-                    const MY_EMAIL = "bruce9811123@gmail.com"; 
-                    
-                    if (user.email === MY_EMAIL) {
-                        window.loginSuccess(); // 帳號正確，解鎖上帝面板
+                    if (result.user.email === MY_EMAIL) {
+                        window.loginSuccess(false); 
                     } else {
-                        // 駭客防護：如果信箱不符，強制登出並顯示錯誤
                         await signOut(auth);
                         errDisplay.innerText = "Access Denied: 未授權的 Google 帳號";
                         errDisplay.style.display = 'block';
@@ -609,6 +627,30 @@
                 }
             });
         }
+
+        // 🌟 將 VPN 狀態寫入 Firestore 的功能 (附帶狀態檢查機制避免浪費額度)
+        let lastVpnStateStr = null;
+        
+        window.syncVpnToFirebase = async function(clients) {
+            const currentStateStr = JSON.stringify(clients);
+            
+            // 如果 VPN 狀態沒有任何變化，就不要執行寫入，避免把 Firebase 每日配額用光
+            if (currentStateStr === lastVpnStateStr) return; 
+            
+            lastVpnStateStr = currentStateStr;
+
+            try {
+                // 將資料存進 Firestore 的 "vpn_status/current_connections" 節點
+                await setDoc(doc(db, "vpn_status", "current_connections"), {
+                    updatedAt: serverTimestamp(),
+                    active_users: clients,
+                    user_count: clients.length
+                });
+                console.log("✅ 偵測到 VPN 狀態變更，已成功同步至 Firebase 資料庫！");
+            } catch (error) {
+                console.error("Firebase Firestore 寫入失敗:", error);
+            }
+        };
     </script>
 </body>
 </html>

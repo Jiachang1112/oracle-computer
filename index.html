@@ -355,15 +355,23 @@
         }
 
         // 🌟 PM2 點擊發送 API 請求
-        async function pm2Action(action, appName) {
-            try {
-                await fetch(`${API_BASE}/api/pm2/${action}/${appName}`);
-                // 執行後自動觸發一次面板更新，讓狀態立刻改變
-                updateDashboard();
-            } catch (error) {
-                console.error("PM2 Command Failed:", error);
-            }
+        // 🌟 升級版 PM2 控制，加入錯誤提示與點擊回饋
+async function pm2Action(action, appName) {
+    try {
+        const res = await fetch(`${API_BASE}/api/pm2/${action}/${appName}`);
+        const data = await res.json();
+        
+        if(data.status === "success") {
+            console.log(`成功 ${action} 了 ${appName}`);
+            updateDashboard(); // 動作後立刻刷新狀態
+        } else {
+            alert(`⚠️ 操作失敗！請確認 Oracle 主機的 server.py 有更新到最新版！`);
         }
+    } catch (error) {
+        alert("❌ 連線失敗！後端 API 可能沒有回應。");
+        console.error("PM2 Command Failed:", error);
+    }
+}
 
         async function updateDashboard() {
             try {
@@ -456,8 +464,12 @@
                         </div>
                     `;
                 });
-                document.getElementById('pm2-list').innerHTML = tableHTML;
-                document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
+               document.getElementById('pm2-list').innerHTML = tableHTML;
+
+// 🌟 加上這層防護：只有當程式數量改變時才重新渲染按鈕區塊，避免每 0.5 秒按鈕就被摧毀一次
+if (document.getElementById('pm2-control-grid').innerHTML !== ctrlHTML) {
+    document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
+}
 
                 // 更新日誌
                 const logRes = await fetch(`${API_BASE}/api/logs`);

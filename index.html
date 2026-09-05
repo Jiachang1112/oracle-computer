@@ -168,9 +168,29 @@
         .log-viewer { flex-grow: 1; padding: 15px; color: var(--accent-green); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5; overflow-y: auto; white-space: pre-wrap; }
 
         @media (max-width: 900px) { body { grid-template-columns: 1fr; } .right-panel { min-height: 500px; } .top-cards { grid-template-columns: 1fr; } .pm2-grid { grid-template-columns: 1fr; } }
+
+        /* 🌟 專屬浮動提示通知 (Toast) */
+        #toast-container {
+            position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: var(--card-bg); border-left: 4px solid var(--accent-green);
+            color: #fff; padding: 12px 20px; border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem; animation: slideIn 0.3s ease-out forwards;
+            display: flex; align-items: center; gap: 10px;
+        }
+        @keyframes slideIn { 
+            from { transform: translateX(100%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
     </style>
 </head>
 <body>
+
+    <!-- 🌟 浮動通知容器 -->
+    <div id="toast-container"></div>
 
     <!-- 🌟 VPN 詳細資訊互動彈窗 -->
     <div id="vpn-modal">
@@ -354,24 +374,43 @@
             document.getElementById('vpn-modal').style.display = 'none';
         }
 
-        // 🌟 PM2 點擊發送 API 請求
-        // 🌟 升級版 PM2 控制，加入錯誤提示與點擊回饋
-async function pm2Action(action, appName) {
-    try {
-        const res = await fetch(`${API_BASE}/api/pm2/${action}/${appName}`);
-        const data = await res.json();
-        
-        if(data.status === "success") {
-            console.log(`成功 ${action} 了 ${appName}`);
-            updateDashboard(); // 動作後立刻刷新狀態
-        } else {
-            alert(`⚠️ 操作失敗！請確認 Oracle 主機的 server.py 有更新到最新版！`);
+        // 🌟 產生浮動通知的函數
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderLeftColor = type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)';
+            toast.innerHTML = message;
+            container.appendChild(toast);
+            
+            // 3秒後自動消失
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
-    } catch (error) {
-        alert("❌ 連線失敗！後端 API 可能沒有回應。");
-        console.error("PM2 Command Failed:", error);
-    }
-}
+
+        // 🌟 PM2 點擊發送 API 請求 (加入即時回饋)
+        async function pm2Action(action, appName) {
+            const actionText = action === 'restart' ? '重啟' : '停止';
+            showToast(`⏳ 正在對 ${appName} 發送${actionText}指令...`, 'success');
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/pm2/${action}/${appName}`);
+                const data = await res.json();
+                
+                if(data.status === "success") {
+                    showToast(`✅ 已成功${actionText} ${appName}！`, 'success');
+                    updateDashboard(); // 動作後立刻刷新狀態
+                } else {
+                    showToast(`⚠️ 操作失敗！請確認 Oracle 主機的 server.py 有更新到最新版！`, 'error');
+                }
+            } catch (error) {
+                showToast(`❌ 連線失敗！後端 API 可能沒有回應。`, 'error');
+                console.error("PM2 Command Failed:", error);
+            }
+        }
 
         async function updateDashboard() {
             try {
@@ -464,12 +503,12 @@ async function pm2Action(action, appName) {
                         </div>
                     `;
                 });
-               document.getElementById('pm2-list').innerHTML = tableHTML;
+                document.getElementById('pm2-list').innerHTML = tableHTML;
 
-// 🌟 加上這層防護：只有當程式數量改變時才重新渲染按鈕區塊，避免每 0.5 秒按鈕就被摧毀一次
-if (document.getElementById('pm2-control-grid').innerHTML !== ctrlHTML) {
-    document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
-}
+                // 🌟 加上這層防護：只有當程式數量或名稱改變時，才重新渲染按鈕區塊，避免每 0.5 秒按鈕就被摧毀一次
+                if (document.getElementById('pm2-control-grid').innerHTML !== ctrlHTML) {
+                    document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
+                }
 
                 // 更新日誌
                 const logRes = await fetch(`${API_BASE}/api/logs`);

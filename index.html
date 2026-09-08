@@ -219,7 +219,7 @@
     </div>
 
     <div id="rustdesk-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9997; flex-direction: column; backdrop-filter: blur(5px);">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #111; border-bottom: 1px solid var(--accent-blue);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #111; border-bottom: 1px solid var(--accent-blue); flex-shrink: 0;">
             <div style="color: var(--accent-blue); font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; align-items: center; gap: 10px;">
                 🖥️ RustDesk Web Client
                 <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">(授權完成：支援剪貼簿傳輸)</span>
@@ -229,7 +229,8 @@
                 <button onclick="closeRustDeskModal()" style="background: var(--accent-red); border: none; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; transition: 0.2s;">關閉視窗</button>
             </div>
         </div>
-        <iframe src="https://vnc.chiacheng1112.com/vnc.html?autoconnect=true&resize=scale" style="width: 100%; height: 75vh; border: none; border-radius: 8px; background: #000;"></iframe>
+        <!-- 🌟 改用 flex-grow: 1 自動佔滿剩餘高度，不留白 -->
+        <iframe src="https://vnc.chiacheng1112.com/vnc.html?autoconnect=true&resize=scale" style="width: 100%; flex-grow: 1; border: none; background: #000;"></iframe>
     </div>
 
     <div id="login-overlay">

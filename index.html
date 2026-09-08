@@ -256,6 +256,8 @@
     <div class="header">
         Oracle Cloud God Mode Dashboard
         <div class="header-controls">
+            <!-- 🌟 這是新增的登出按鈕 -->
+            <button onclick="logout()" style="background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">登出系統</button>
             <button class="rustdesk-btn" onclick="openRustDeskModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12zM2 3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2z"/><path d="M5.5 13a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5z"/><path d="M4 14.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/></svg>
                 RUSTDESK WEB
@@ -402,6 +404,25 @@
             }
         };
 
+        // 🌟 新增的登出函數
+        window.logout = async function() {
+            // 1. 清除密碼登入的記憶
+            localStorage.removeItem('godModeAuth');
+            // 2. 清除 Google 登入的狀態 (這會呼叫下方的 firebaseLogout)
+            if (window.firebaseLogout) await window.firebaseLogout();
+            
+            // 3. 停止背景 API 更新以節省效能
+            if (dashboardInterval) {
+                clearInterval(dashboardInterval);
+                dashboardInterval = null;
+            }
+            
+            // 4. 清空密碼欄並將登入畫面顯示回來
+            document.getElementById('pwd-input').value = '';
+            document.getElementById('login-overlay').style.display = 'flex';
+            showToast('已安全登出系統', 'success');
+        };
+
         // 🌟 網頁一載入就檢查是否曾經用密碼登入過
         if (localStorage.getItem('godModeAuth') === 'true') {
             window.loginSuccess(false);
@@ -411,7 +432,8 @@
         document.getElementById('pwd-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 if (this.value === 'jiachang') {
-                    window.loginSuccess(true); // 帶入 true 讓系統記住
+                    // 🌟 這裡改成 false，代表密碼登入不再儲存至記憶體，重整頁面就會失效 (登出)
+                    window.loginSuccess(false); 
                 } else {
                     const err = document.getElementById('login-err');
                     err.style.display = 'block';
@@ -640,6 +662,11 @@
                 signOut(auth); 
             }
         });
+
+        // 🌟 新增這裡：提供給全域 logout 函數使用的 Firebase 登出功能
+        window.firebaseLogout = async function() {
+            await signOut(auth);
+        };
 
         // 🌟 Google 登入按鈕事件
         const googleBtn = document.getElementById('google-login-btn');

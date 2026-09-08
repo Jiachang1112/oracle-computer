@@ -172,8 +172,8 @@
         .ctrl-btns .restart:hover { color: #000; background: var(--accent-yellow); border-color: var(--accent-yellow); }
         .ctrl-btns .stop:hover { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
 
-        /* 終端機日誌 */
-        .terminal-section { flex-grow: 1; display: flex; flex-direction: column; background: #000; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; height: 350px; }
+        /* 終端機日誌 (已縮小高度) */
+        .terminal-section { flex-grow: 1; display: flex; flex-direction: column; background: #000; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; height: 220px; }
         .terminal-header { background: #1a1b1e; padding: 10px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
         .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
         .close { background: #ff5f56; } .minimize { background: #ffbd2e; } .maximize { background: #27c93f; }
@@ -267,6 +267,7 @@
         </div>
     </div>
 
+    <!-- 🌟 左側面板 -->
     <div class="left-panel">
         
         <div class="top-cards">
@@ -320,25 +321,6 @@
             </div>
         </div>
 
-        <div class="card vpn-card">
-            <h3>
-                VPN Status & Clients
-                <span id="vpn-badge" class="badge offline"><span class="dot"></span>CHECKING</span>
-            </h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>USER / IP</th>
-                        <th>TRAFFIC (↓/↑)</th>
-                        <th>CONNECTED AT</th>
-                    </tr>
-                </thead>
-                <tbody id="vpn-client-list">
-                    <tr><td colspan="3" style="text-align:center; color:#888;">載入中...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
         <div class="card pm2-card">
             <h3>PM2 Processes</h3>
             <table>
@@ -358,6 +340,7 @@
         </div>
     </div>
 
+    <!-- 🌟 右側面板 -->
     <div class="right-panel">
         
         <div class="pm2-controller">
@@ -367,6 +350,27 @@
             </div>
         </div>
 
+        <!-- 🌟 VPN 區塊已移至此處 -->
+        <div class="card vpn-card">
+            <h3>
+                VPN Status & Clients
+                <span id="vpn-badge" class="badge offline"><span class="dot"></span>CHECKING</span>
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>USER / IP</th>
+                        <th>TRAFFIC (↓/↑)</th>
+                        <th>CONNECTED AT</th>
+                    </tr>
+                </thead>
+                <tbody id="vpn-client-list">
+                    <tr><td colspan="3" style="text-align:center; color:#888;">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 🌟 終端機日誌 -->
         <div class="terminal-section">
             <div class="terminal-header">
                 <div class="mac-btn close"></div>

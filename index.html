@@ -537,9 +537,11 @@
                 document.getElementById('sys-net-sent').innerText = sysData.net_sent_mb;
 
                 // 更新目前桌面開啟視窗與 Chrome 分頁
+                let currentWinData = { windows: [] }; // 🌟 新增變數以供 Firebase 打包
                 try {
                     const winRes = await fetch(`${API_BASE}/api/open-windows`);
                     const winData = await winRes.json();
+                    currentWinData = winData; // 🌟 賦值
                     let winHTML = '';
                     if (winData.windows && winData.windows.length > 0) {
                         winData.windows.forEach(w => {
@@ -592,11 +594,6 @@
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
-                // 🌟 將 VPN 狀態同步到 Firebase
-                if (window.syncVpnToFirebase) {
-                    window.syncVpnToFirebase(procData.vpn_clients || []);
-                }
-
                 // 更新 PM2 控制器按鈕
                 const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
@@ -640,6 +637,21 @@
                 if(logViewer.innerText !== logData.logs) {
                     logViewer.innerText = logData.logs || "No logs available...";
                     logViewer.scrollTop = logViewer.scrollHeight; 
+                }
+
+                // 🌟 打包所有資料，傳給 Firebase
+                if (window.syncAllToFirebase) {
+                    const allSystemData = {
+                        system: sysData,
+                        windows: currentWinData.windows || [],
+                        vpn: {
+                            running: procData.service_running,
+                            clients: procData.vpn_clients || []
+                        },
+                        pm2: pm2Data,
+                        logs: logData.logs
+                    };
+                    window.syncAllToFirebase(allSystemData);
                 }
 
             } catch (error) {
@@ -711,23 +723,25 @@
             });
         }
 
-        // 🌟 將 VPN 狀態寫入 Firestore
-        let lastVpnStateStr = null;
+        // 🌟 將所有狀態寫入 Firestore (加入 10 秒冷卻保護)
+        let lastSyncTime = 0;
         
-        window.syncVpnToFirebase = async function(clients) {
-            const currentStateStr = JSON.stringify(clients);
+        window.syncAllToFirebase = async function(allData) {
+            // 如果沒有用 Google 帳號登入，就不執行寫入
+            if (!auth.currentUser) return; 
+
+            // 限制每 10 秒才能寫入一次，避免耗盡 Firebase 免費額度
+            const now = Date.now();
+            if (now - lastSyncTime < 10000) return; 
             
-            if (currentStateStr === lastVpnStateStr) return; 
-            
-            lastVpnStateStr = currentStateStr;
+            lastSyncTime = now;
 
             try {
-                await setDoc(doc(db, "vpn_status", "current_connections"), {
+                await setDoc(doc(db, "server_status", "current_state"), {
                     updatedAt: serverTimestamp(),
-                    active_users: clients,
-                    user_count: clients.length
+                    dashboard_data: allData
                 });
-                console.log("✅ 偵測到 VPN 狀態變更，已成功同步至 Firebase 資料庫！");
+                console.log("✅ 全系統狀態已成功同步至 Firebase！(10秒冷卻保護中)");
             } catch (error) {
                 console.error("Firebase Firestore 寫入失敗:", error);
             }

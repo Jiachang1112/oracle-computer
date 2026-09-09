@@ -172,8 +172,19 @@
         .ctrl-btns .restart:hover { color: #000; background: var(--accent-yellow); border-color: var(--accent-yellow); }
         .ctrl-btns .stop:hover { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
 
-        /* 終端機日誌 (已縮小高度) */
-        .terminal-section { flex-grow: 1; display: flex; flex-direction: column; background: #000; border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; height: 220px; }
+        /* 🌟 終端機日誌 (加入 resize: vertical 讓使用者可以自由拖曳高度) */
+        .terminal-section { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background: #000; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            overflow: hidden; 
+            height: 220px; 
+            min-height: 150px; /* 避免縮得太小 */
+            resize: vertical;  /* 🌟 加入這行，右下角會出現拖曳控制項 */
+        }
         .terminal-header { background: #1a1b1e; padding: 10px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
         .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
         .close { background: #ff5f56; } .minimize { background: #ffbd2e; } .maximize { background: #27c93f; }

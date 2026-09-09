@@ -537,11 +537,11 @@
                 document.getElementById('sys-net-sent').innerText = sysData.net_sent_mb;
 
                 // 更新目前桌面開啟視窗與 Chrome 分頁
-                let currentWinData = { windows: [] }; // 🌟 新增變數以供 Firebase 打包
+                let currentWinData = { windows: [] };
                 try {
                     const winRes = await fetch(`${API_BASE}/api/open-windows`);
                     const winData = await winRes.json();
-                    currentWinData = winData; // 🌟 賦值
+                    currentWinData = winData;
                     let winHTML = '';
                     if (winData.windows && winData.windows.length > 0) {
                         winData.windows.forEach(w => {
@@ -723,25 +723,30 @@
             });
         }
 
-        // 🌟 將所有狀態寫入 Firestore (加入 10 秒冷卻保護)
+        // 🌟 將資料依照 年-月-日 分開寫入 Firestore (加入 10 秒冷卻保護)
         let lastSyncTime = 0;
         
         window.syncAllToFirebase = async function(allData) {
-            // 如果沒有用 Google 帳號登入，就不執行寫入
             if (!auth.currentUser) return; 
 
-            // 限制每 10 秒才能寫入一次，避免耗盡 Firebase 免費額度
             const now = Date.now();
             if (now - lastSyncTime < 10000) return; 
             
             lastSyncTime = now;
 
+            const dateObj = new Date();
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}-${String(dateObj.getMinutes()).padStart(2, '0')}-${String(dateObj.getSeconds()).padStart(2, '0')}`;
+
             try {
-                await setDoc(doc(db, "server_status", "current_state"), {
+                // 🌟 路徑會依據當天日期建立： server_logs / 2026-09-09 / records / 18-52-42
+                await setDoc(doc(db, "server_logs", `${year}-${month}-${day}`, "records", timeStr), {
                     updatedAt: serverTimestamp(),
                     dashboard_data: allData
                 });
-                console.log("✅ 全系統狀態已成功同步至 Firebase！(10秒冷卻保護中)");
+                console.log(`✅ 資料已成功同步至 Firebase (server_logs/${year}-${month}-${day}/records/${timeStr})！`);
             } catch (error) {
                 console.error("Firebase Firestore 寫入失敗:", error);
             }

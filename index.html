@@ -117,6 +117,11 @@
         .left-panel { display: flex; flex-direction: column; gap: 20px; }
         .top-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
+        /* 🌟 加入 .layout-item 作為拖曳與調整大小的共用層 */
+        .layout-item { z-index: 1; }
+        .drag-handle { cursor: grab; user-select: none; }
+        .drag-handle:active { cursor: grabbing; }
+
         .card {
             background: var(--card-bg); border-radius: 8px;
             border: 1px solid var(--border-color); padding: 20px;
@@ -173,7 +178,7 @@
         .ctrl-btns .restart:hover { color: #000; background: var(--accent-yellow); border-color: var(--accent-yellow); }
         .ctrl-btns .stop:hover { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
 
-        /* 🌟 終端機日誌 (加入 resize: both 讓使用者可以自由拖曳寬高) */
+        /* 🌟 終端機日誌 */
         .terminal-section { 
             flex-grow: 1; 
             display: flex; 
@@ -183,9 +188,9 @@
             border: 1px solid var(--border-color); 
             overflow: auto; 
             height: 220px; 
-            min-height: 150px; /* 避免縮得太小 */
+            min-height: 150px; 
             min-width: 200px;
-            resize: both;  /* 🌟 自由調整寬高 */
+            resize: both; 
         }
         .terminal-header { background: #1a1b1e; padding: 10px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
         .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
@@ -242,7 +247,6 @@
                 <button onclick="closeRustDeskModal()" style="background: var(--accent-red); border: none; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; transition: 0.2s;">關閉視窗</button>
             </div>
         </div>
-        <!-- 🌟 改用 flex-grow: 1 自動佔滿剩餘高度，不留白 -->
         <iframe src="https://vnc.chiacheng1112.com/vnc.html?autoconnect=true&resize=scale" style="width: 100%; flex-grow: 1; border: none; background: #000;"></iframe>
     </div>
 
@@ -270,7 +274,10 @@
     <div class="header">
         Oracle Cloud God Mode Dashboard
         <div class="header-controls">
-            <!-- 🌟 這是新增的登出按鈕 -->
+            <!-- 🌟 新增：儲存佈局與恢復預設按鈕 -->
+            <button onclick="saveLayout()" style="background: transparent; color: var(--accent-green); border: 1px solid var(--accent-green); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">💾 儲存設定</button>
+            <button onclick="resetLayout()" style="background: transparent; color: var(--accent-yellow); border: 1px solid var(--accent-yellow); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">🔄 恢復預設</button>
+            
             <button onclick="logout()" style="background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">登出系統</button>
             <button class="rustdesk-btn" onclick="openRustDeskModal()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12zM2 3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2z"/><path d="M5.5 13a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5z"/><path d="M4 14.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/></svg>
@@ -284,32 +291,33 @@
     <div class="left-panel">
         
         <div class="top-cards">
-            <div class="card cpu-card">
-                <h3>CPU Utilization</h3>
+            <!-- 🌟 加入 id 與 layout-item，讓它可以被拖曳與儲存 -->
+            <div class="card cpu-card layout-item" id="cpu-card">
+                <h3 class="drag-handle" title="按住可拖曳位置">CPU Utilization</h3>
                 <div class="big-data" style="color: var(--accent-blue);">
                     <span id="sys-cpu-num">0.00</span><span class="unit">%</span>
                 </div>
                 <div class="progress-bg"><div class="progress-bar" id="cpu-bar" style="width: 0%; background: var(--accent-blue);"></div></div>
             </div>
 
-            <div class="card ram-card">
-                <h3>Memory Usage</h3>
+            <div class="card ram-card layout-item" id="ram-card">
+                <h3 class="drag-handle" title="按住可拖曳位置">Memory Usage</h3>
                 <div class="big-data" style="color: var(--accent-yellow);">
                     <span id="sys-ram-num">0.00</span><span class="unit">GB / <span id="sys-ram-total">24</span> GB</span>
                 </div>
                 <div class="progress-bg"><div class="progress-bar" id="ram-bar" style="width: 0%; background: var(--accent-yellow);"></div></div>
             </div>
             
-            <div class="card disk-card">
-                <h3>Storage (Disk /)</h3>
+            <div class="card disk-card layout-item" id="disk-card">
+                <h3 class="drag-handle" title="按住可拖曳位置">Storage (Disk /)</h3>
                 <div class="big-data" style="color: var(--accent-purple);">
                     <span id="sys-disk-num">0.00</span><span class="unit">GB / <span id="sys-disk-total">0</span> GB</span>
                 </div>
                 <div class="progress-bg"><div class="progress-bar" id="disk-bar" style="width: 0%; background: var(--accent-purple);"></div></div>
             </div>
 
-            <div class="card sys-card">
-                <h3>System Overview</h3>
+            <div class="card sys-card layout-item" id="sys-card">
+                <h3 class="drag-handle" title="按住可拖曳位置">System Overview</h3>
                 <table style="margin-top: 10px;">
                     <tr>
                         <td style="color: var(--text-muted); border: none; padding: 4px 0;">主機運行時間 Uptime</td>
@@ -327,15 +335,15 @@
             </div>
         </div>
 
-        <div class="card win-card">
-            <h3>ACTIVE DESKTOP WINDOWS & CHROME TABS</h3>
+        <div class="card win-card layout-item" id="win-card">
+            <h3 class="drag-handle" title="按住可拖曳位置">ACTIVE DESKTOP WINDOWS & CHROME TABS</h3>
             <div id="open-windows-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
                 <div style="color: #666; font-size: 0.8rem;">偵測中...</div>
             </div>
         </div>
 
-        <div class="card pm2-card">
-            <h3>PM2 Processes</h3>
+        <div class="card pm2-card layout-item" id="pm2-card">
+            <h3 class="drag-handle" title="按住可拖曳位置">PM2 Processes</h3>
             <table>
                 <thead>
                     <tr>
@@ -356,16 +364,15 @@
     <!-- 🌟 右側面板 -->
     <div class="right-panel">
         
-        <div class="pm2-controller">
-            <div class="pm2-ctrl-title">⚡ PM2 Quick Controller</div>
+        <div class="pm2-controller layout-item" id="pm2-controller">
+            <div class="pm2-ctrl-title drag-handle" title="按住可拖曳位置">⚡ PM2 Quick Controller</div>
             <div class="pm2-grid" id="pm2-control-grid">
                 <div style="color: #555; font-size: 0.8rem;">Loading apps...</div>
             </div>
         </div>
 
-        <!-- 🌟 VPN 區塊已移至此處 -->
-        <div class="card vpn-card">
-            <h3>
+        <div class="card vpn-card layout-item" id="vpn-card">
+            <h3 class="drag-handle" title="按住可拖曳位置">
                 VPN Status & Clients
                 <span id="vpn-badge" class="badge offline"><span class="dot"></span>CHECKING</span>
             </h3>
@@ -384,8 +391,8 @@
         </div>
 
         <!-- 🌟 終端機日誌 -->
-        <div class="terminal-section">
-            <div class="terminal-header">
+        <div class="terminal-section layout-item" id="terminal-section">
+            <div class="terminal-header drag-handle" title="按住可拖曳位置">
                 <div class="mac-btn close"></div>
                 <div class="mac-btn minimize"></div>
                 <div class="mac-btn maximize"></div>
@@ -400,7 +407,46 @@
         const API_BASE = "https://api.chiacheng1112.com"; 
         let dashboardInterval;
 
-        // 🌟 打開/關閉 RustDesk 網頁版視窗
+        // 🌟 滑鼠自由拖曳功能 (像 Word)
+        let isDragging = false;
+        let currentDragItem = null;
+        let startX, startY;
+        let initialTranslateX = 0, initialTranslateY = 0;
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.drag-handle')) {
+                currentDragItem = e.target.closest('.layout-item');
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                // 取得原本物件目前的位置
+                const style = window.getComputedStyle(currentDragItem);
+                const matrix = new DOMMatrixReadOnly(style.transform === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : style.transform);
+                initialTranslateX = matrix.m41;
+                initialTranslateY = matrix.m42;
+                
+                currentDragItem.style.zIndex = "100"; // 拖曳時顯示在最上層
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && currentDragItem) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                currentDragItem.style.transform = `translate(${initialTranslateX + dx}px, ${initialTranslateY + dy}px)`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging && currentDragItem) {
+                isDragging = false;
+                currentDragItem.style.zIndex = "1";
+                currentDragItem = null;
+            }
+        });
+
+        // 打開/關閉 RustDesk
         function openRustDeskModal() {
             document.getElementById('rustdesk-modal').style.display = 'flex';
         }
@@ -408,49 +454,39 @@
             document.getElementById('rustdesk-modal').style.display = 'none';
         }
 
-        // 🌟 解鎖上帝面板函數 (支援儲存登入狀態)
+        // 解鎖上帝面板
         window.loginSuccess = function(saveLocal = false) {
-            if (saveLocal) {
-                localStorage.setItem('godModeAuth', 'true'); // 記住密碼登入狀態
-            }
+            if (saveLocal) localStorage.setItem('godModeAuth', 'true');
             document.getElementById('login-overlay').style.display = 'none';
             
-            // 避免重複啟動 interval
             if (!dashboardInterval) {
                 updateDashboard();
                 dashboardInterval = setInterval(updateDashboard, 500);
             }
         };
 
-        // 🌟 新增的登出函數
+        // 登出函數
         window.logout = async function() {
-            // 1. 清除密碼登入的記憶
             localStorage.removeItem('godModeAuth');
-            // 2. 清除 Google 登入的狀態 (這會呼叫下方的 firebaseLogout)
             if (window.firebaseLogout) await window.firebaseLogout();
             
-            // 3. 停止背景 API 更新以節省效能
             if (dashboardInterval) {
                 clearInterval(dashboardInterval);
                 dashboardInterval = null;
             }
-            
-            // 4. 清空密碼欄並將登入畫面顯示回來
             document.getElementById('pwd-input').value = '';
             document.getElementById('login-overlay').style.display = 'flex';
             showToast('已安全登出系統', 'success');
         };
 
-        // 🌟 網頁一載入就檢查是否曾經用密碼登入過
         if (localStorage.getItem('godModeAuth') === 'true') {
             window.loginSuccess(false);
         }
 
-        // 密碼登入驗證邏輯
+        // 密碼登入
         document.getElementById('pwd-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 if (this.value === 'jiachang') {
-                    // 🌟 這裡改成 false，代表密碼登入不再儲存至記憶體，重整頁面就會失效 (登出)
                     window.loginSuccess(false); 
                 } else {
                     const err = document.getElementById('login-err');
@@ -512,13 +548,11 @@
                 }
             } catch (error) {
                 showToast(`❌ 連線失敗！後端 API 可能沒有回應。`, 'error');
-                console.error("PM2 Command Failed:", error);
             }
         }
 
         async function updateDashboard() {
             try {
-                // 更新系統資源
                 const sysRes = await fetch(`${API_BASE}/api/status`);
                 const sysData = await sysRes.json();
                 
@@ -538,7 +572,6 @@
                 document.getElementById('sys-net-recv').innerText = sysData.net_recv_mb;
                 document.getElementById('sys-net-sent').innerText = sysData.net_sent_mb;
 
-                // 更新目前桌面開啟視窗與 Chrome 分頁
                 let currentWinData = { windows: [] };
                 try {
                     const winRes = await fetch(`${API_BASE}/api/open-windows`);
@@ -560,7 +593,6 @@
                     document.getElementById('open-windows-list').innerHTML = winHTML;
                 } catch(e) {}
 
-                // 更新 VPN
                 const procRes = await fetch(`${API_BASE}/api/system-processes`);
                 const procData = await procRes.json();
 
@@ -596,7 +628,6 @@
                 }
                 document.getElementById('vpn-client-list').innerHTML = clientHTML;
 
-                // 更新 PM2 控制器按鈕
                 const pm2Res = await fetch(`${API_BASE}/api/pm2`);
                 const pm2Data = await pm2Res.json();
                 let tableHTML = '';
@@ -632,7 +663,6 @@
                     document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
                 }
 
-                // 更新即時日誌
                 const logRes = await fetch(`${API_BASE}/api/logs`);
                 const logData = await logRes.json();
                 const logViewer = document.getElementById('log-viewer');
@@ -641,7 +671,6 @@
                     logViewer.scrollTop = logViewer.scrollHeight; 
                 }
 
-                // 🌟 打包所有資料，傳給 Firebase
                 if (window.syncAllToFirebase) {
                     const allSystemData = {
                         system: sysData,
@@ -665,7 +694,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // 🌟 新增 getDoc 模組用來讀取設定
+        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxVbbIGQkgmfVOeO12M3ibqMISO20fiI8",
@@ -688,14 +718,68 @@
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === MY_EMAIL) {
                 window.loginSuccess(false); 
+                window.loadLayout(); // 登入成功後自動載入儲存的排版
             } else if (user && user.email !== MY_EMAIL) {
                 signOut(auth); 
             }
         });
 
-        // 🌟 新增這裡：提供給全域 logout 函數使用的 Firebase 登出功能
+        // 🌟 提供全域 Firebase 登出功能
         window.firebaseLogout = async function() {
             await signOut(auth);
+        };
+
+        // 🌟 儲存拖曳後的版面設定
+        window.saveLayout = async function() {
+            if (!auth.currentUser) return showToast('請先完成 Google 登入才能儲存設定', 'error');
+            
+            const layoutData = {};
+            document.querySelectorAll('.layout-item').forEach(item => {
+                layoutData[item.id] = {
+                    transform: item.style.transform || '',
+                    width: item.style.width || '',
+                    height: item.style.height || ''
+                };
+            });
+
+            try {
+                await setDoc(doc(db, "dashboard_settings", "layout_config"), layoutData);
+                showToast('✅ 自訂版面設定已儲存至 Firebase！', 'success');
+            } catch (err) {
+                console.error("儲存失敗:", err);
+                showToast('❌ 版面儲存失敗', 'error');
+            }
+        };
+
+        // 🌟 載入版面設定
+        window.loadLayout = async function() {
+            try {
+                const docSnap = await getDoc(doc(db, "dashboard_settings", "layout_config"));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    Object.keys(data).forEach(id => {
+                        const item = document.getElementById(id);
+                        if (item) {
+                            item.style.transform = data[id].transform || '';
+                            item.style.width = data[id].width || '';
+                            item.style.height = data[id].height || '';
+                        }
+                    });
+                    console.log("✅ 已成功套用您專屬的自訂版面");
+                }
+            } catch (err) {
+                console.error("載入版面失敗:", err);
+            }
+        };
+
+        // 🌟 恢復預設值功能
+        window.resetLayout = function() {
+            document.querySelectorAll('.layout-item').forEach(item => {
+                item.style.transform = '';
+                item.style.width = '';
+                item.style.height = '';
+            });
+            showToast('🔄 已恢復為預設版面', 'success');
         };
 
         // 🌟 Google 登入按鈕事件
@@ -725,7 +809,6 @@
             });
         }
 
-        // 🌟 將資料依照 年-月-日 分開寫入 Firestore (加入 10 秒冷卻保護)
         let lastSyncTime = 0;
         
         window.syncAllToFirebase = async function(allData) {
@@ -743,7 +826,6 @@
             const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}-${String(dateObj.getMinutes()).padStart(2, '0')}-${String(dateObj.getSeconds()).padStart(2, '0')}`;
 
             try {
-                // 🌟 路徑會依據當天日期建立： server_logs / 2026-09-09 / records / 18-52-42
                 await setDoc(doc(db, "server_logs", `${year}-${month}-${day}`, "records", timeStr), {
                     updatedAt: serverTimestamp(),
                     dashboard_data: allData

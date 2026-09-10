@@ -1,31 +1,758 @@
-@echo off
-:: 設定視窗編碼為 UTF-8 以避免中文亂碼
-chcp 65001 >nul
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle Cloud God Mode Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111111;
+            --card-bg: #1a1b1e;
+            --text-main: #e0e0e0;
+            --text-muted: #888888;
+            --border-color: #2c2d30;
+            --accent-green: #00b85c;
+            --accent-blue: #0099ff;
+            --accent-red: #ff3366;
+            --accent-yellow: #ffcc00;
+            --accent-purple: #b366ff;
+        }
 
-:: 切換到新專案資料夾路徑
-cd /d C:\Users\USER\Downloads\shop-platform-phase3-fixed
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+            overflow-x: hidden;
+        }
 
-:: 檢查 Next.js 執行檔是否存在（確保套件已完整安裝）
-if not exist "node_modules\.bin\next.cmd" (
-    echo 偵測到套件未安裝或不完整，正在自動執行 npm install，請稍候...
-    call npm install
-    echo 套件安裝完成！準備啟動伺服器...
-) else (
-    echo 依賴套件檢查正常，準備啟動伺服器...
-)
+        /* 🌟 登入畫面覆蓋層 */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: #111; padding: 40px 50px; border-radius: 8px;
+            border: 1px solid var(--accent-green); text-align: center;
+            box-shadow: 0 0 30px rgba(0, 184, 92, 0.15);
+        }
+        .login-box h2 {
+            color: var(--accent-green); margin: 0 0 5px 0;
+            font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; letter-spacing: 2px;
+        }
+        .login-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px; }
+        .login-box input {
+            padding: 12px; width: 200px; background: #1a1b1e;
+            border: 1px solid var(--border-color); color: #fff;
+            text-align: center; font-family: 'JetBrains Mono', monospace;
+            outline: none; border-radius: 4px; transition: 0.3s;
+        }
+        .login-box input:focus { border-color: var(--accent-green); }
+        .login-err { color: var(--accent-red); font-size: 0.8rem; margin-top: 15px; display: none; }
 
-:: 檢查是否曾經安裝/更新過 Drizzle 套件（若不存在 .drizzle_installed 才執行）
-if not exist ".drizzle_installed" (
-    echo [首次設定] 正在更新 Drizzle 套件至最新版本...
-    call npm install drizzle-orm@latest drizzle-kit@latest
-    :: 安裝完成後自動建立標記檔，下次開啟時將直接跳過
-    echo done > ".drizzle_installed"
-) else (
-    echo 偵測到先前已更新過 Drizzle 套件，自動跳過安裝...
-)
+        /* 🌟 VPN 詳細資訊彈窗樣式 */
+        #vpn-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+            z-index: 9998; display: none; justify-content: center; align-items: center;
+        }
+        .modal-box {
+            background: var(--card-bg); border: 1px solid var(--accent-green);
+            border-radius: 8px; padding: 25px 35px; width: 350px;
+            box-shadow: 0 10px 40px rgba(0,184,92,0.15);
+        }
+        .modal-box h3 {
+            color: var(--accent-green); margin: 0 0 20px 0;
+            font-family: 'JetBrains Mono', monospace; font-size: 1.2rem;
+            border-bottom: 1px solid #333; padding-bottom: 10px;
+        }
+        .modal-box p {
+            display: flex; justify-content: space-between; margin: 10px 0;
+            font-size: 0.85rem; border-bottom: 1px dashed #333; padding-bottom: 8px;
+            color: var(--text-muted);
+        }
+        .modal-box p span:last-child { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+        .close-btn {
+            width: 100%; padding: 10px; margin-top: 15px; background: #222;
+            color: #fff; border: 1px solid #444; border-radius: 4px;
+            cursor: pointer; transition: 0.2s; font-weight: 700;
+        }
+        .close-btn:hover { background: var(--accent-red); border-color: var(--accent-red); }
+        .clickable-row { cursor: pointer; transition: background 0.2s; }
+        .clickable-row:hover { background: rgba(255, 255, 255, 0.08); }
 
-:: 視窗 1：啟動 Drizzle Studio
-start "Drizzle Studio" cmd /k "chcp 65001 >nul && npx drizzle-kit studio"
+        /* 🌟 Header 與 RustDesk 按鈕 */
+        .header {
+            grid-column: 1 / -1; display: flex; align-items: center;
+            padding: 10px 20px; background: var(--card-bg);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            font-weight: 700; letter-spacing: 1px;
+        }
+        .header-controls {
+            margin-left: auto; display: flex; align-items: center; gap: 15px;
+        }
+        .header .live-badge {
+            background: var(--accent-green); color: #000;
+            padding: 3px 10px; border-radius: 4px; font-size: 0.8rem;
+        }
+        .rustdesk-btn {
+            background: var(--accent-blue); color: #fff; border: none;
+            padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;
+            font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.2); display: flex; align-items: center; gap: 6px;
+        }
+        .rustdesk-btn:hover {
+            background: #33aaff; box-shadow: 0 0 15px rgba(0, 153, 255, 0.4); transform: translateY(-1px);
+        }
 
-:: 視窗 2：啟動網頁開發伺服器（使用 Webpack 模式）
-start "Web Dev Server" cmd /k "chcp 65001 >nul && npx next dev --webpack"
+        .left-panel { display: flex; flex-direction: column; gap: 20px; }
+        .top-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .card {
+            background: var(--card-bg); border-radius: 8px;
+            border: 1px solid var(--border-color); padding: 20px;
+            position: relative; overflow: auto;
+            resize: both; min-height: 140px; min-width: 200px;
+        }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 2px; background: var(--border-color);
+        }
+        .card.cpu-card::before { background: var(--accent-blue); }
+        .card.ram-card::before { background: var(--accent-yellow); }
+        .card.disk-card::before { background: var(--accent-purple); }
+        .card.sys-card::before { background: #fff; }
+        .card.vpn-card::before { background: var(--accent-red); }
+        .card.pm2-card::before { background: var(--accent-green); }
+        .card.win-card::before { background: var(--accent-blue); }
+
+        .card h3 {
+            margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .big-data {
+            font-family: 'JetBrains Mono', monospace; font-size: 2rem;
+            font-weight: 800; margin-bottom: 5px; display: flex; align-items: baseline; gap: 5px;
+        }
+        .big-data .unit { font-size: 0.9rem; color: var(--text-muted); font-weight: 400; }
+        .progress-bg { background: #000; border-radius: 4px; height: 6px; width: 100%; overflow: hidden; margin-top: 10px; }
+        .progress-bar { height: 100%; transition: width 0.3s ease; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding-bottom: 8px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border-color); }
+        td { padding: 8px 0; border-bottom: 1px solid #222; font-family: 'JetBrains Mono', monospace; }
+        
+        .badge {
+            display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+            border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+            background: rgba(0, 184, 92, 0.15); color: var(--accent-green);
+        }
+        .badge.offline { background: rgba(255, 51, 102, 0.15); color: var(--accent-red); }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; box-shadow: 0 0 6px currentColor; }
+
+        /* 🌟 右側面板 */
+        .right-panel { display: flex; flex-direction: column; gap: 20px; }
+        
+        /* PM2 快捷控制器 */
+        .pm2-controller { background: #000; border-radius: 8px; border: 1px solid var(--border-color); padding: 15px; resize: both; overflow: auto; min-height: 120px; min-width: 200px; }
+        .pm2-ctrl-title { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-bottom: 12px; font-weight: 700; }
+        .pm2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pm2-ctrl-card { background: #1a1b1e; padding: 10px 12px; border-radius: 6px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .pm2-ctrl-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #fff; font-weight: 700; }
+        .ctrl-btns button { background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 4px; padding: 4px 8px; margin-left: 5px; transition: 0.2s; font-size: 0.75rem; }
+        .ctrl-btns .restart:hover { color: #000; background: var(--accent-yellow); border-color: var(--accent-yellow); }
+        .ctrl-btns .stop:hover { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
+
+        /* 🌟 終端機日誌 (加入 resize: both 讓使用者可以自由拖曳寬高) */
+        .terminal-section { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background: #000; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            overflow: auto; 
+            height: 220px; 
+            min-height: 150px; /* 避免縮得太小 */
+            min-width: 200px;
+            resize: both;  /* 🌟 自由調整寬高 */
+        }
+        .terminal-header { background: #1a1b1e; padding: 10px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
+        .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
+        .close { background: #ff5f56; } .minimize { background: #ffbd2e; } .maximize { background: #27c93f; }
+        .terminal-title { margin-left: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+        .log-viewer { flex-grow: 1; padding: 15px; color: var(--accent-green); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5; overflow-y: auto; white-space: pre-wrap; }
+
+        .window-item { background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 12px; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; word-break: break-all; }
+
+        @media (max-width: 900px) { body { grid-template-columns: 1fr; } .right-panel { min-height: 500px; } .top-cards { grid-template-columns: 1fr; } .pm2-grid { grid-template-columns: 1fr; } }
+
+        /* 專屬浮動提示通知 (Toast) */
+        #toast-container {
+            position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: var(--card-bg); border-left: 4px solid var(--accent-green);
+            color: #fff; padding: 12px 20px; border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem; animation: slideIn 0.3s ease-out forwards;
+            display: flex; align-items: center; gap: 10px;
+        }
+        @keyframes slideIn { 
+            from { transform: translateX(100%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="vpn-modal">
+        <div class="modal-box">
+            <h3 id="modal-user">👤 User</h3>
+            <p><span>真實 IP Address</span> <span id="modal-real-ip" style="color: var(--accent-blue);"></span></p>
+            <p><span>內部虛擬 IP</span> <span id="modal-virtual-ip" style="color: var(--accent-yellow);"></span></p>
+            <p><span>下行流量 (RX)</span> <span id="modal-rx" style="color: var(--accent-green);"></span></p>
+            <p><span>上行流量 (TX)</span> <span id="modal-tx" style="color: var(--accent-purple);"></span></p>
+            <p style="border-bottom: none;"><span>連線起始時間</span> <span id="modal-time" style="color: var(--text-muted);"></span></p>
+            <button class="close-btn" onclick="closeVpnModal()">關閉視窗</button>
+        </div>
+    </div>
+
+    <div id="rustdesk-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9997; flex-direction: column; backdrop-filter: blur(5px);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #111; border-bottom: 1px solid var(--accent-blue); flex-shrink: 0;">
+            <div style="color: var(--accent-blue); font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                🖥️ RustDesk Web Client
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">(授權完成：支援剪貼簿傳輸)</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="window.open('https://rustdesk.com/web', '_blank')" style="background: #222; border: 1px solid #444; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; transition: 0.2s;">↗ 在新分頁開啟</button>
+                <button onclick="closeRustDeskModal()" style="background: var(--accent-red); border: none; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; transition: 0.2s;">關閉視窗</button>
+            </div>
+        </div>
+        <!-- 🌟 改用 flex-grow: 1 自動佔滿剩餘高度，不留白 -->
+        <iframe src="https://vnc.chiacheng1112.com/vnc.html?autoconnect=true&resize=scale" style="width: 100%; flex-grow: 1; border: none; background: #000;"></iframe>
+    </div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>GOD MODE</h2>
+            <p>Authentication Required</p>
+            <input type="password" id="pwd-input" placeholder="Enter Password..." autocomplete="off">
+            
+            <div style="margin: 18px 0; color: var(--text-muted); font-size: 0.8rem; display: flex; align-items: center;">
+                <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+                <span style="padding: 0 10px;">OR</span>
+                <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            </div>
+
+            <button id="google-login-btn" style="width: 100%; padding: 10px; background: #fff; color: #000; border: none; border-radius: 4px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18px" height="18px"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
+                Sign in with Google
+            </button>
+
+            <div id="login-err" class="login-err">Access Denied: 驗證失敗</div>
+        </div>
+    </div>
+
+    <div class="header">
+        Oracle Cloud God Mode Dashboard
+        <div class="header-controls">
+            <!-- 🌟 這是新增的登出按鈕 -->
+            <button onclick="logout()" style="background: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">登出系統</button>
+            <button class="rustdesk-btn" onclick="openRustDeskModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 2a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12zM2 3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2z"/><path d="M5.5 13a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5z"/><path d="M4 14.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5z"/></svg>
+                RUSTDESK WEB
+            </button>
+            <div class="live-badge">LIVE</div>
+        </div>
+    </div>
+
+    <!-- 🌟 左側面板 -->
+    <div class="left-panel">
+        
+        <div class="top-cards">
+            <div class="card cpu-card">
+                <h3>CPU Utilization</h3>
+                <div class="big-data" style="color: var(--accent-blue);">
+                    <span id="sys-cpu-num">0.00</span><span class="unit">%</span>
+                </div>
+                <div class="progress-bg"><div class="progress-bar" id="cpu-bar" style="width: 0%; background: var(--accent-blue);"></div></div>
+            </div>
+
+            <div class="card ram-card">
+                <h3>Memory Usage</h3>
+                <div class="big-data" style="color: var(--accent-yellow);">
+                    <span id="sys-ram-num">0.00</span><span class="unit">GB / <span id="sys-ram-total">24</span> GB</span>
+                </div>
+                <div class="progress-bg"><div class="progress-bar" id="ram-bar" style="width: 0%; background: var(--accent-yellow);"></div></div>
+            </div>
+            
+            <div class="card disk-card">
+                <h3>Storage (Disk /)</h3>
+                <div class="big-data" style="color: var(--accent-purple);">
+                    <span id="sys-disk-num">0.00</span><span class="unit">GB / <span id="sys-disk-total">0</span> GB</span>
+                </div>
+                <div class="progress-bg"><div class="progress-bar" id="disk-bar" style="width: 0%; background: var(--accent-purple);"></div></div>
+            </div>
+
+            <div class="card sys-card">
+                <h3>System Overview</h3>
+                <table style="margin-top: 10px;">
+                    <tr>
+                        <td style="color: var(--text-muted); border: none; padding: 4px 0;">主機運行時間 Uptime</td>
+                        <td style="color: #fff; text-align: right; border: none; padding: 4px 0;" id="sys-uptime">--</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--text-muted); border: none; padding: 4px 0;">主機總下載 Total RX</td>
+                        <td style="color: var(--accent-green); text-align: right; border: none; padding: 4px 0;" id="sys-net-recv">--</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--text-muted); border: none; padding: 4px 0;">主機總上傳 Total TX</td>
+                        <td style="color: var(--accent-blue); text-align: right; border: none; padding: 4px 0;" id="sys-net-sent">--</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card win-card">
+            <h3>ACTIVE DESKTOP WINDOWS & CHROME TABS</h3>
+            <div id="open-windows-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
+                <div style="color: #666; font-size: 0.8rem;">偵測中...</div>
+            </div>
+        </div>
+
+        <div class="card pm2-card">
+            <h3>PM2 Processes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>APP</th>
+                        <th>STATUS</th>
+                        <th>CPU</th>
+                        <th>RAM</th>
+                        <th>RESTARTS</th>
+                    </tr>
+                </thead>
+                <tbody id="pm2-list">
+                    <tr><td colspan="5" style="text-align:center; color:#888;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 🌟 右側面板 -->
+    <div class="right-panel">
+        
+        <div class="pm2-controller">
+            <div class="pm2-ctrl-title">⚡ PM2 Quick Controller</div>
+            <div class="pm2-grid" id="pm2-control-grid">
+                <div style="color: #555; font-size: 0.8rem;">Loading apps...</div>
+            </div>
+        </div>
+
+        <!-- 🌟 VPN 區塊已移至此處 -->
+        <div class="card vpn-card">
+            <h3>
+                VPN Status & Clients
+                <span id="vpn-badge" class="badge offline"><span class="dot"></span>CHECKING</span>
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>USER / IP</th>
+                        <th>TRAFFIC (↓/↑)</th>
+                        <th>CONNECTED AT</th>
+                    </tr>
+                </thead>
+                <tbody id="vpn-client-list">
+                    <tr><td colspan="3" style="text-align:center; color:#888;">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 🌟 終端機日誌 -->
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <div class="mac-btn close"></div>
+                <div class="mac-btn minimize"></div>
+                <div class="mac-btn maximize"></div>
+                <div class="terminal-title">ubuntu@oracle:~ pm2 logs & actions</div>
+            </div>
+            <div class="log-viewer" id="log-viewer">Waiting for authentication...</div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_BASE = "https://api.chiacheng1112.com"; 
+        let dashboardInterval;
+
+        // 🌟 打開/關閉 RustDesk 網頁版視窗
+        function openRustDeskModal() {
+            document.getElementById('rustdesk-modal').style.display = 'flex';
+        }
+        function closeRustDeskModal() {
+            document.getElementById('rustdesk-modal').style.display = 'none';
+        }
+
+        // 🌟 解鎖上帝面板函數 (支援儲存登入狀態)
+        window.loginSuccess = function(saveLocal = false) {
+            if (saveLocal) {
+                localStorage.setItem('godModeAuth', 'true'); // 記住密碼登入狀態
+            }
+            document.getElementById('login-overlay').style.display = 'none';
+            
+            // 避免重複啟動 interval
+            if (!dashboardInterval) {
+                updateDashboard();
+                dashboardInterval = setInterval(updateDashboard, 500);
+            }
+        };
+
+        // 🌟 新增的登出函數
+        window.logout = async function() {
+            // 1. 清除密碼登入的記憶
+            localStorage.removeItem('godModeAuth');
+            // 2. 清除 Google 登入的狀態 (這會呼叫下方的 firebaseLogout)
+            if (window.firebaseLogout) await window.firebaseLogout();
+            
+            // 3. 停止背景 API 更新以節省效能
+            if (dashboardInterval) {
+                clearInterval(dashboardInterval);
+                dashboardInterval = null;
+            }
+            
+            // 4. 清空密碼欄並將登入畫面顯示回來
+            document.getElementById('pwd-input').value = '';
+            document.getElementById('login-overlay').style.display = 'flex';
+            showToast('已安全登出系統', 'success');
+        };
+
+        // 🌟 網頁一載入就檢查是否曾經用密碼登入過
+        if (localStorage.getItem('godModeAuth') === 'true') {
+            window.loginSuccess(false);
+        }
+
+        // 密碼登入驗證邏輯
+        document.getElementById('pwd-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                if (this.value === 'jiachang') {
+                    // 🌟 這裡改成 false，代表密碼登入不再儲存至記憶體，重整頁面就會失效 (登出)
+                    window.loginSuccess(false); 
+                } else {
+                    const err = document.getElementById('login-err');
+                    err.style.display = 'block';
+                    err.innerText = "Access Denied: 密碼錯誤";
+                    this.value = '';
+                    this.parentElement.style.animation = 'shake 0.4s';
+                    setTimeout(() => { this.parentElement.style.animation = ''; }, 400);
+                }
+            }
+        });
+
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); } }`;
+        document.head.appendChild(style);
+
+        function openVpnModal(user, realIp, virtualIp, rx, tx, time) {
+            document.getElementById('modal-user').innerText = `👤 ${user}`;
+            document.getElementById('modal-real-ip').innerText = realIp;
+            document.getElementById('modal-virtual-ip').innerText = virtualIp;
+            document.getElementById('modal-rx').innerText = rx;
+            document.getElementById('modal-tx').innerText = tx;
+            document.getElementById('modal-time').innerText = time;
+            document.getElementById('vpn-modal').style.display = 'flex';
+        }
+
+        function closeVpnModal() {
+            document.getElementById('vpn-modal').style.display = 'none';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderLeftColor = type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)';
+            toast.innerHTML = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        async function pm2Action(action, appName) {
+            const actionText = action === 'restart' ? '重啟' : '停止';
+            showToast(`⏳ 正在對 ${appName} 發送${actionText}指令...`, 'success');
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/pm2/${action}/${appName}`);
+                const data = await res.json();
+                
+                if(data.status === "success") {
+                    showToast(`✅ 已成功${actionText} ${appName}！`, 'success');
+                    updateDashboard();
+                } else {
+                    showToast(`⚠️ 操作失敗！請確認後端 API 正常`, 'error');
+                }
+            } catch (error) {
+                showToast(`❌ 連線失敗！後端 API 可能沒有回應。`, 'error');
+                console.error("PM2 Command Failed:", error);
+            }
+        }
+
+        async function updateDashboard() {
+            try {
+                // 更新系統資源
+                const sysRes = await fetch(`${API_BASE}/api/status`);
+                const sysData = await sysRes.json();
+                
+                document.getElementById('sys-cpu-num').innerText = parseFloat(sysData.cpu_percent).toFixed(2);
+                document.getElementById('cpu-bar').style.width = `${sysData.cpu_percent}%`;
+
+                const ramPercent = (sysData.ram_used_gb / sysData.ram_total_gb) * 100;
+                document.getElementById('sys-ram-num').innerText = parseFloat(sysData.ram_used_gb).toFixed(2);
+                document.getElementById('sys-ram-total').innerText = sysData.ram_total_gb;
+                document.getElementById('ram-bar').style.width = `${ramPercent}%`;
+
+                document.getElementById('sys-disk-num').innerText = sysData.disk_used_gb;
+                document.getElementById('sys-disk-total').innerText = sysData.disk_total_gb;
+                document.getElementById('disk-bar').style.width = `${sysData.disk_percent}%`;
+
+                document.getElementById('sys-uptime').innerText = sysData.uptime;
+                document.getElementById('sys-net-recv').innerText = sysData.net_recv_mb;
+                document.getElementById('sys-net-sent').innerText = sysData.net_sent_mb;
+
+                // 更新目前桌面開啟視窗與 Chrome 分頁
+                let currentWinData = { windows: [] };
+                try {
+                    const winRes = await fetch(`${API_BASE}/api/open-windows`);
+                    const winData = await winRes.json();
+                    currentWinData = winData;
+                    let winHTML = '';
+                    if (winData.windows && winData.windows.length > 0) {
+                        winData.windows.forEach(w => {
+                            let icon = '🔲';
+                            if (w.toLowerCase().includes('chromium') || w.toLowerCase().includes('chrome')) icon = '🌐';
+                            else if (w.toLowerCase().includes('terminal')) icon = '💻';
+                            else if (w.toLowerCase().includes('rustdesk')) icon = '🖥️';
+
+                            winHTML += `<div class="window-item"><span>${icon}</span><span style="color:#fff;">${w}</span></div>`;
+                        });
+                    } else {
+                        winHTML = `<div style="color: #666; font-size: 0.8rem;">目前無開啟中的視窗</div>`;
+                    }
+                    document.getElementById('open-windows-list').innerHTML = winHTML;
+                } catch(e) {}
+
+                // 更新 VPN
+                const procRes = await fetch(`${API_BASE}/api/system-processes`);
+                const procData = await procRes.json();
+
+                const vpnBadge = document.getElementById('vpn-badge');
+                if (procData.service_running) {
+                    vpnBadge.className = 'badge';
+                    vpnBadge.innerHTML = '<span class="dot"></span>SERVICE RUNNING';
+                } else {
+                    vpnBadge.className = 'badge offline';
+                    vpnBadge.innerHTML = '<span class="dot"></span>SERVICE STOPPED';
+                }
+
+                let clientHTML = '';
+                if (procData.vpn_clients && procData.vpn_clients.length > 0) {
+                    procData.vpn_clients.forEach(c => {
+                        const user = c.user || c.peer || 'Unknown';
+                        const realIp = c.real_ip || 'N/A';
+                        const virtualIp = c.virtual_ip || '10.8.0.x';
+                        const rx = c.rx || '0 B';
+                        const tx = c.tx || '0 B';
+                        const connTime = c.connected_since || c.details || 'N/A';
+
+                        clientHTML += `
+                            <tr class="clickable-row" onclick="openVpnModal('${user}', '${realIp}', '${virtualIp}', '${rx}', '${tx}', '${connTime}')" title="點擊查看詳細資訊">
+                                <td style="color: var(--accent-green); font-weight: 500;">User: ${user}</td>
+                                <td style="color: var(--accent-blue);">↓ ${rx}  ↑ ${tx}</td>
+                                <td style="color: var(--text-muted); font-size: 0.8rem;">${connTime.substring(0, 19)}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    clientHTML = `<tr><td colspan="3" style="text-align:center; color:#888;">目前無外部用戶連線</td></tr>`;
+                }
+                document.getElementById('vpn-client-list').innerHTML = clientHTML;
+
+                // 更新 PM2 控制器按鈕
+                const pm2Res = await fetch(`${API_BASE}/api/pm2`);
+                const pm2Data = await pm2Res.json();
+                let tableHTML = '';
+                let ctrlHTML = '';
+
+                pm2Data.forEach(p => {
+                    const isOnline = p.status === 'online';
+                    const badgeClass = isOnline ? 'badge' : 'badge offline';
+                    
+                    tableHTML += `
+                        <tr>
+                            <td style="color: #fff;">${p.name}</td>
+                            <td><span class="${badgeClass}"><span class="dot"></span>${p.status}</span></td>
+                            <td>${p.cpu}%</td>
+                            <td>${p.memory} MB</td>
+                            <td style="color: var(--accent-red);">${p.restarts}</td>
+                        </tr>
+                    `;
+
+                    ctrlHTML += `
+                        <div class="pm2-ctrl-card">
+                            <span class="pm2-ctrl-name">${p.name}</span>
+                            <div class="ctrl-btns">
+                                <button class="restart" onclick="pm2Action('restart', '${p.name}')" title="重啟">🔄</button>
+                                <button class="stop" onclick="pm2Action('stop', '${p.name}')" title="停止">⏹️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('pm2-list').innerHTML = tableHTML;
+
+                if (document.getElementById('pm2-control-grid').innerHTML !== ctrlHTML) {
+                    document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
+                }
+
+                // 更新即時日誌
+                const logRes = await fetch(`${API_BASE}/api/logs`);
+                const logData = await logRes.json();
+                const logViewer = document.getElementById('log-viewer');
+                if(logViewer.innerText !== logData.logs) {
+                    logViewer.innerText = logData.logs || "No logs available...";
+                    logViewer.scrollTop = logViewer.scrollHeight; 
+                }
+
+                // 🌟 打包所有資料，傳給 Firebase
+                if (window.syncAllToFirebase) {
+                    const allSystemData = {
+                        system: sysData,
+                        windows: currentWinData.windows || [],
+                        vpn: {
+                            running: procData.service_running,
+                            clients: procData.vpn_clients || []
+                        },
+                        pm2: pm2Data,
+                        logs: logData.logs
+                    };
+                    window.syncAllToFirebase(allSystemData);
+                }
+
+            } catch (error) {
+                console.error("Fetch failed:", error);
+            }
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxVbbIGQkgmfVOeO12M3ibqMISO20fiI8",
+            authDomain: "oracle-7815b.firebaseapp.com",
+            projectId: "oracle-7815b",
+            storageBucket: "oracle-7815b.firebasestorage.app",
+            messagingSenderId: "387307365749",
+            appId: "1:387307365749:web:5509025514421232745f3c",
+            measurementId: "G-XCN59E4B31"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        const MY_EMAIL = "bruce9811123@gmail.com"; 
+
+        // 🌟 自動監聽 Google 登入狀態
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.email === MY_EMAIL) {
+                window.loginSuccess(false); 
+            } else if (user && user.email !== MY_EMAIL) {
+                signOut(auth); 
+            }
+        });
+
+        // 🌟 新增這裡：提供給全域 logout 函數使用的 Firebase 登出功能
+        window.firebaseLogout = async function() {
+            await signOut(auth);
+        };
+
+        // 🌟 Google 登入按鈕事件
+        const googleBtn = document.getElementById('google-login-btn');
+        const errDisplay = document.getElementById('login-err');
+
+        if(googleBtn) {
+            googleBtn.addEventListener('click', async () => {
+                const originalText = googleBtn.innerHTML;
+                googleBtn.innerHTML = "⏳ Authenticating...";
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    if (result.user.email === MY_EMAIL) {
+                        window.loginSuccess(false); 
+                    } else {
+                        await signOut(auth);
+                        errDisplay.innerText = "Access Denied: 未授權的 Google 帳號";
+                        errDisplay.style.display = 'block';
+                        googleBtn.innerHTML = originalText;
+                    }
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                    errDisplay.innerText = "Error: 無法連線至 Google 驗證";
+                    errDisplay.style.display = 'block';
+                    googleBtn.innerHTML = originalText;
+                }
+            });
+        }
+
+        // 🌟 將資料依照 年-月-日 分開寫入 Firestore (加入 10 秒冷卻保護)
+        let lastSyncTime = 0;
+        
+        window.syncAllToFirebase = async function(allData) {
+            if (!auth.currentUser) return; 
+
+            const now = Date.now();
+            if (now - lastSyncTime < 10000) return; 
+            
+            lastSyncTime = now;
+
+            const dateObj = new Date();
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}-${String(dateObj.getMinutes()).padStart(2, '0')}-${String(dateObj.getSeconds()).padStart(2, '0')}`;
+
+            try {
+                // 🌟 路徑會依據當天日期建立： server_logs / 2026-09-09 / records / 18-52-42
+                await setDoc(doc(db, "server_logs", `${year}-${month}-${day}`, "records", timeStr), {
+                    updatedAt: serverTimestamp(),
+                    dashboard_data: allData
+                });
+                console.log(`✅ 資料已成功同步至 Firebase (server_logs/${year}-${month}-${day}/records/${timeStr})！`);
+            } catch (error) {
+                console.error("Firebase Firestore 寫入失敗:", error);
+            }
+        };
+    </script>
+</body>
+</html>

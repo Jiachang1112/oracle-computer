@@ -663,13 +663,26 @@
                     document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
                 }
 
-                const logRes = await fetch(`${API_BASE}/api/logs`);
-                const logData = await logRes.json();
-                const logViewer = document.getElementById('log-viewer');
-                if(logViewer.innerText !== logData.logs) {
-                    logViewer.innerText = logData.logs || "No logs available...";
-                    logViewer.scrollTop = logViewer.scrollHeight; 
-                }
+                // 修正後的程式碼
+const logRes = await fetch(`${API_BASE}/api/logs`);
+const logData = await logRes.json();
+const logViewer = document.getElementById('log-viewer');
+
+// 1. 使用自訂屬性 dataset 記錄上次的原始字串，避免 innerText 換行符號造成的無限觸發
+if (logViewer.dataset.lastLog !== logData.logs) {
+    
+    // 2. 更新前，先判斷使用者目前的滾動條是否在最底部 (容許 10px 的彈性空間)
+    const isAtBottom = logViewer.scrollHeight - logViewer.clientHeight <= logViewer.scrollTop + 10;
+    
+    // 更新畫面內容 (改用 textContent 效能更好且不破壞原始排版)
+    logViewer.textContent = logData.logs || "No logs available...";
+    logViewer.dataset.lastLog = logData.logs; 
+
+    // 3. 如果使用者本來就在最下面，才幫他自動往下滾；如果他正在往上滑看舊紀錄，就不理他
+    if (isAtBottom) {
+        logViewer.scrollTop = logViewer.scrollHeight; 
+    }
+}
 
                 if (window.syncAllToFirebase) {
                     const allSystemData = {

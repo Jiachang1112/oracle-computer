@@ -139,6 +139,8 @@
         .card.vpn-card::before { background: var(--accent-red); }
         .card.pm2-card::before { background: var(--accent-green); }
         .card.win-card::before { background: var(--accent-blue); }
+        /* 🌟 新增 CMD 卡片的頂部顏色 */
+        .card.cmd-card::before { background: var(--accent-red); }
 
         .card h3 {
             margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-muted);
@@ -179,19 +181,19 @@
         .ctrl-btns .stop:hover { color: #fff; background: var(--accent-red); border-color: var(--accent-red); }
 
         /* 🌟 終端機日誌 */
-.terminal-section { 
-    /* 已經刪除 flex-grow: 1; 不再強制佔滿剩下空間 */
-    display: flex; 
-    flex-direction: column; 
-    background: #000; 
-    border-radius: 8px; 
-    border: 1px solid var(--border-color); 
-    overflow: auto; 
-    height: 350px; /* 可以稍微把預設高度調高一點，方便閱讀 */
-    min-height: 150px; 
-    min-width: 200px;
-    resize: both; 
-}
+        .terminal-section { 
+            /* 已經刪除 flex-grow: 1; 不再強制佔滿剩下空間 */
+            display: flex; 
+            flex-direction: column; 
+            background: #000; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            overflow: auto; 
+            height: 350px; /* 可以稍微把預設高度調高一點，方便閱讀 */
+            min-height: 150px; 
+            min-width: 200px;
+            resize: both; 
+        }
         .terminal-header { background: #1a1b1e; padding: 10px 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); }
         .mac-btn { width: 10px; height: 10px; border-radius: 50%; }
         .close { background: #ff5f56; } .minimize { background: #ffbd2e; } .maximize { background: #27c93f; }
@@ -371,6 +373,16 @@
             </div>
         </div>
 
+        <!-- 🌟 新增：快速指令 (CMD) 執行區塊 -->
+        <div class="card cmd-card layout-item" id="cmd-card">
+            <h3 class="drag-handle" title="按住可拖曳位置">🛠️ QUICK COMMAND EXECUTOR</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="cmd-input" placeholder="輸入 Linux 指令 (例如: free -m, ls -la, pwd)" style="flex: 1; background: #111; color: #fff; border: 1px solid #333; padding: 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; outline: none;">
+                <button onclick="executeCommand()" style="background: var(--accent-red); color: #fff; border: none; padding: 8px 15px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: 'JetBrains Mono', monospace;">執行 / EXEC</button>
+            </div>
+            <div id="cmd-output" style="background: #000; color: var(--accent-green); padding: 10px; border-radius: 4px; border: 1px solid #222; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; min-height: 80px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">Waiting for command...</div>
+        </div>
+
         <div class="card vpn-card layout-item" id="vpn-card">
             <h3 class="drag-handle" title="按住可拖曳位置">
                 VPN Status & Clients
@@ -463,6 +475,14 @@
                 updateDashboard();
                 dashboardInterval = setInterval(updateDashboard, 500);
             }
+
+            // 綁定 CMD 的 Enter 快捷鍵
+            const cmdInput = document.getElementById('cmd-input');
+            if(cmdInput) {
+                cmdInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') window.executeCommand();
+                });
+            }
         };
 
         // 登出函數
@@ -531,6 +551,43 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
+
+        // 🌟 執行 CMD 指令的新增功能
+        window.executeCommand = async function() {
+            const cmdInput = document.getElementById('cmd-input');
+            const cmdOutput = document.getElementById('cmd-output');
+            const cmd = cmdInput.value.trim();
+
+            if (!cmd) return showToast('⚠️ 請先輸入系統指令', 'error');
+
+            cmdOutput.style.color = 'var(--text-muted)';
+            cmdOutput.innerText = `Executing: ${cmd} ...\n`;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/cmd`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd })
+                });
+                
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    cmdOutput.style.color = 'var(--accent-green)';
+                    cmdOutput.innerText = data.output || '(指令執行成功，無回傳內容)';
+                    showToast('✅ 指令執行成功', 'success');
+                } else {
+                    cmdOutput.style.color = 'var(--accent-red)';
+                    cmdOutput.innerText = `Error:\n${data.error}`;
+                    showToast('❌ 指令執行失敗', 'error');
+                }
+            } catch (err) {
+                cmdOutput.style.color = 'var(--accent-red)';
+                cmdOutput.innerText = `Connection Error:\n${err.message}`;
+                showToast('❌ 無法連線至伺服器 API', 'error');
+            }
+            cmdInput.value = ''; // 清空輸入框
+        };
 
         async function pm2Action(action, appName) {
             const actionText = action === 'restart' ? '重啟' : '停止';
@@ -664,25 +721,25 @@
                 }
 
                 // 修正後的程式碼
-const logRes = await fetch(`${API_BASE}/api/logs`);
-const logData = await logRes.json();
-const logViewer = document.getElementById('log-viewer');
+                const logRes = await fetch(`${API_BASE}/api/logs`);
+                const logData = await logRes.json();
+                const logViewer = document.getElementById('log-viewer');
 
-// 1. 使用自訂屬性 dataset 記錄上次的原始字串，避免 innerText 換行符號造成的無限觸發
-if (logViewer.dataset.lastLog !== logData.logs) {
-    
-    // 2. 更新前，先判斷使用者目前的滾動條是否在最底部 (容許 10px 的彈性空間)
-    const isAtBottom = logViewer.scrollHeight - logViewer.clientHeight <= logViewer.scrollTop + 10;
-    
-    // 更新畫面內容 (改用 textContent 效能更好且不破壞原始排版)
-    logViewer.textContent = logData.logs || "No logs available...";
-    logViewer.dataset.lastLog = logData.logs; 
+                // 1. 使用自訂屬性 dataset 記錄上次的原始字串，避免 innerText 換行符號造成的無限觸發
+                if (logViewer.dataset.lastLog !== logData.logs) {
+                    
+                    // 2. 更新前，先判斷使用者目前的滾動條是否在最底部 (容許 10px 的彈性空間)
+                    const isAtBottom = logViewer.scrollHeight - logViewer.clientHeight <= logViewer.scrollTop + 10;
+                    
+                    // 更新畫面內容 (改用 textContent 效能更好且不破壞原始排版)
+                    logViewer.textContent = logData.logs || "No logs available...";
+                    logViewer.dataset.lastLog = logData.logs; 
 
-    // 3. 如果使用者本來就在最下面，才幫他自動往下滾；如果他正在往上滑看舊紀錄，就不理他
-    if (isAtBottom) {
-        logViewer.scrollTop = logViewer.scrollHeight; 
-    }
-}
+                    // 3. 如果使用者本來就在最下面，才幫他自動往下滾；如果他正在往上滑看舊紀錄，就不理他
+                    if (isAtBottom) {
+                        logViewer.scrollTop = logViewer.scrollHeight; 
+                    }
+                }
 
                 if (window.syncAllToFirebase) {
                     const allSystemData = {

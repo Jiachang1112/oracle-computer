@@ -17,6 +17,7 @@
             --accent-red: #ff3366;
             --accent-yellow: #ffcc00;
             --accent-purple: #b366ff;
+            --accent-cyan: #00e5ff;
         }
 
         body {
@@ -139,8 +140,8 @@
         .card.vpn-card::before { background: var(--accent-red); }
         .card.pm2-card::before { background: var(--accent-green); }
         .card.win-card::before { background: var(--accent-blue); }
-        /* 🌟 新增 CMD 卡片的頂部顏色 */
         .card.cmd-card::before { background: var(--accent-red); }
+        .card.cloud-card::before { background: var(--accent-cyan); }
 
         .card h3 {
             margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-muted);
@@ -182,14 +183,13 @@
 
         /* 🌟 終端機日誌 */
         .terminal-section { 
-            /* 已經刪除 flex-grow: 1; 不再強制佔滿剩下空間 */
             display: flex; 
             flex-direction: column; 
             background: #000; 
             border-radius: 8px; 
             border: 1px solid var(--border-color); 
             overflow: auto; 
-            height: 350px; /* 可以稍微把預設高度調高一點，方便閱讀 */
+            height: 350px; 
             min-height: 150px; 
             min-width: 200px;
             resize: both; 
@@ -201,6 +201,16 @@
         .log-viewer { flex-grow: 1; padding: 15px; color: var(--accent-green); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.5; overflow-y: auto; white-space: pre-wrap; }
 
         .window-item { background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 12px; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; word-break: break-all; }
+
+        /* 🌟 雲端檔案列表樣式 */
+        .file-item {
+            background: #111; border: 1px solid #222; border-radius: 4px; padding: 8px 12px; margin-bottom: 6px;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        .file-name { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #fff; word-break: break-all; flex: 1; }
+        .file-actions button { background: #222; border: 1px solid #444; color: #fff; cursor: pointer; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; transition: 0.2s; white-space: nowrap; }
+        .file-actions button:hover { background: var(--accent-cyan); border-color: var(--accent-cyan); color: #000; }
+        .file-actions .del-btn:hover { background: var(--accent-red); border-color: var(--accent-red); color: #fff; }
 
         @media (max-width: 900px) { body { grid-template-columns: 1fr; } .right-panel { min-height: 500px; } .top-cards { grid-template-columns: 1fr; } .pm2-grid { grid-template-columns: 1fr; } }
 
@@ -276,7 +286,6 @@
     <div class="header">
         Oracle Cloud God Mode Dashboard
         <div class="header-controls">
-            <!-- 🌟 新增：儲存佈局與恢復預設按鈕 -->
             <button onclick="saveLayout()" style="background: transparent; color: var(--accent-green); border: 1px solid var(--accent-green); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">💾 儲存設定</button>
             <button onclick="resetLayout()" style="background: transparent; color: var(--accent-yellow); border: 1px solid var(--accent-yellow); padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-weight: 700; transition: 0.2s;">🔄 恢復預設</button>
             
@@ -293,7 +302,6 @@
     <div class="left-panel">
         
         <div class="top-cards">
-            <!-- 🌟 加入 id 與 layout-item，讓它可以被拖曳與儲存 -->
             <div class="card cpu-card layout-item" id="cpu-card">
                 <h3 class="drag-handle" title="按住可拖曳位置">CPU Utilization</h3>
                 <div class="big-data" style="color: var(--accent-blue);">
@@ -337,6 +345,27 @@
             </div>
         </div>
 
+        <!-- 🌟 這是你要的雲端檔案傳輸區塊 (已經補回) -->
+        <div class="card cloud-card layout-item" id="cloud-card">
+            <h3 class="drag-handle" title="按住可拖曳位置">☁️ CLOUD TRANSFER (PC ↔ ORACLE)</h3>
+            
+            <!-- 上傳區塊 -->
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                <input type="file" id="cloud-file-input" style="flex: 1; background: #111; color: #fff; border: 1px solid #333; padding: 5px; border-radius: 4px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
+                <button onclick="uploadToCloud()" style="background: var(--accent-cyan); color: #000; border: none; padding: 6px 15px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s;">上傳檔案</button>
+            </div>
+            
+            <!-- 進度條 -->
+            <div class="progress-bg" id="upload-progress-bg" style="display: none; margin-bottom: 15px;">
+                <div class="progress-bar" id="upload-progress-bar" style="width: 0%; background: var(--accent-cyan); transition: width 0.3s;"></div>
+            </div>
+
+            <!-- 檔案列表 -->
+            <div id="cloud-file-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
+                <div style="color: #666; font-size: 0.8rem; text-align: center;">載入檔案中...</div>
+            </div>
+        </div>
+
         <div class="card win-card layout-item" id="win-card">
             <h3 class="drag-handle" title="按住可拖曳位置">ACTIVE DESKTOP WINDOWS & CHROME TABS</h3>
             <div id="open-windows-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
@@ -373,7 +402,7 @@
             </div>
         </div>
 
-        <!-- 🌟 新增：快速指令 (CMD) 執行區塊 -->
+        <!-- 🌟 快速指令 (CMD) 執行區塊 -->
         <div class="card cmd-card layout-item" id="cmd-card">
             <h3 class="drag-handle" title="按住可拖曳位置">🛠️ QUICK COMMAND EXECUTOR</h3>
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -432,13 +461,12 @@
                 startX = e.clientX;
                 startY = e.clientY;
 
-                // 取得原本物件目前的位置
                 const style = window.getComputedStyle(currentDragItem);
                 const matrix = new DOMMatrixReadOnly(style.transform === 'none' ? 'matrix(1, 0, 0, 1, 0, 0)' : style.transform);
                 initialTranslateX = matrix.m41;
                 initialTranslateY = matrix.m42;
                 
-                currentDragItem.style.zIndex = "100"; // 拖曳時顯示在最上層
+                currentDragItem.style.zIndex = "100";
             }
         });
 
@@ -458,7 +486,6 @@
             }
         });
 
-        // 打開/關閉 RustDesk
         function openRustDeskModal() {
             document.getElementById('rustdesk-modal').style.display = 'flex';
         }
@@ -466,7 +493,6 @@
             document.getElementById('rustdesk-modal').style.display = 'none';
         }
 
-        // 解鎖上帝面板
         window.loginSuccess = function(saveLocal = false) {
             if (saveLocal) localStorage.setItem('godModeAuth', 'true');
             document.getElementById('login-overlay').style.display = 'none';
@@ -483,9 +509,11 @@
                     if (e.key === 'Enter') window.executeCommand();
                 });
             }
+
+            // 🌟 登入成功後，載入雲端檔案列表
+            window.loadCloudFiles();
         };
 
-        // 登出函數
         window.logout = async function() {
             localStorage.removeItem('godModeAuth');
             if (window.firebaseLogout) await window.firebaseLogout();
@@ -503,7 +531,6 @@
             window.loginSuccess(false);
         }
 
-        // 密碼登入
         document.getElementById('pwd-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 if (this.value === 'jiachang') {
@@ -541,7 +568,7 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = 'toast';
-            toast.style.borderLeftColor = type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)';
+            toast.style.borderLeftColor = type === 'success' ? 'var(--accent-green)' : (type === 'error' ? 'var(--accent-red)' : 'var(--accent-cyan)');
             toast.innerHTML = message;
             container.appendChild(toast);
             
@@ -552,7 +579,119 @@
             }, 3000);
         }
 
-        // 🌟 執行 CMD 指令的新增功能
+        // ==========================================
+        // 🌟 本地 API 雲端檔案傳輸功能 (已補回)
+        // ==========================================
+        window.uploadToCloud = async function() {
+            const fileInput = document.getElementById('cloud-file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) return showToast('⚠️ 請先選擇要上傳的檔案', 'error');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const progressBg = document.getElementById('upload-progress-bg');
+            const progressBar = document.getElementById('upload-progress-bar');
+            progressBg.style.display = 'block';
+            progressBar.style.width = '30%'; 
+
+            try {
+                const res = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    progressBar.style.width = '100%';
+                    showToast('✅ 檔案上傳成功！', 'success');
+                    fileInput.value = ''; 
+                    window.loadCloudFiles(); 
+                } else {
+                    throw new Error(data.message || '上傳失敗');
+                }
+            } catch (err) {
+                console.error("上傳失敗", err);
+                showToast('❌ 檔案上傳失敗', 'error');
+            } finally {
+                setTimeout(() => { 
+                    progressBg.style.display = 'none'; 
+                    progressBar.style.width = '0%'; 
+                }, 1000);
+            }
+        };
+
+        window.loadCloudFiles = async function() {
+            const fileListContainer = document.getElementById('cloud-file-list');
+            if(!fileListContainer) return;
+            fileListContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">讀取中...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/files`);
+                const files = await res.json();
+                
+                if (!Array.isArray(files) || files.length === 0) {
+                    fileListContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">目前主機沒有任何檔案</div>';
+                    return;
+                }
+
+                let html = '';
+                files.forEach(filename => {
+                    const url = `${API_BASE}/api/download/${encodeURIComponent(filename)}`;
+                    const safeName = filename.replace(/'/g, "\\'");
+                    
+                    html += `
+                        <div class="file-item">
+                            <span class="file-name">📄 ${filename}</span>
+                            <div class="file-actions">
+                                <button onclick="window.open('${url}', '_blank')" title="下載檔案">↓</button>
+                                <button onclick="window.copyWgetCommand('${url}', '${safeName}')" title="複製 Wget 指令">🔗 Wget</button>
+                                <button class="del-btn" onclick="window.deleteCloudFile('${safeName}')" title="刪除檔案">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                fileListContainer.innerHTML = html;
+            } catch (error) {
+                console.error("讀取檔案列表失敗", error);
+                fileListContainer.innerHTML = '<div style="color: #ff3366; font-size: 0.8rem; text-align: center;">讀取失敗</div>';
+            }
+        };
+
+        window.copyWgetCommand = function(url, filename) {
+            const command = `wget "${url}" -O "${filename}"`;
+            navigator.clipboard.writeText(command).then(() => {
+                showToast(`✅ 已複製 Wget 指令！`, 'info');
+            }).catch(err => {
+                showToast('❌ 複製失敗', 'error');
+            });
+        };
+
+        window.deleteCloudFile = async function(filename) {
+            if (!confirm(`確定要刪除 ${filename} 嗎？`)) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/files/${encodeURIComponent(filename)}`, { 
+                    method: 'DELETE' 
+                });
+                
+                if (res.ok) {
+                    showToast(`✅ 已刪除 ${filename}`, 'success');
+                    window.loadCloudFiles(); 
+                } else {
+                    throw new Error('刪除失敗');
+                }
+            } catch (error) {
+                console.error("刪除失敗", error);
+                showToast('❌ 刪除失敗', 'error');
+            }
+        };
+
+        // ==========================================
+        // 🌟 執行 CMD 指令
+        // ==========================================
         window.executeCommand = async function() {
             const cmdInput = document.getElementById('cmd-input');
             const cmdOutput = document.getElementById('cmd-output');
@@ -586,7 +725,7 @@
                 cmdOutput.innerText = `Connection Error:\n${err.message}`;
                 showToast('❌ 無法連線至伺服器 API', 'error');
             }
-            cmdInput.value = ''; // 清空輸入框
+            cmdInput.value = ''; 
         };
 
         async function pm2Action(action, appName) {
@@ -720,22 +859,14 @@
                     document.getElementById('pm2-control-grid').innerHTML = ctrlHTML;
                 }
 
-                // 修正後的程式碼
                 const logRes = await fetch(`${API_BASE}/api/logs`);
                 const logData = await logRes.json();
                 const logViewer = document.getElementById('log-viewer');
 
-                // 1. 使用自訂屬性 dataset 記錄上次的原始字串，避免 innerText 換行符號造成的無限觸發
                 if (logViewer.dataset.lastLog !== logData.logs) {
-                    
-                    // 2. 更新前，先判斷使用者目前的滾動條是否在最底部 (容許 10px 的彈性空間)
                     const isAtBottom = logViewer.scrollHeight - logViewer.clientHeight <= logViewer.scrollTop + 10;
-                    
-                    // 更新畫面內容 (改用 textContent 效能更好且不破壞原始排版)
                     logViewer.textContent = logData.logs || "No logs available...";
                     logViewer.dataset.lastLog = logData.logs; 
-
-                    // 3. 如果使用者本來就在最下面，才幫他自動往下滾；如果他正在往上滑看舊紀錄，就不理他
                     if (isAtBottom) {
                         logViewer.scrollTop = logViewer.scrollHeight; 
                     }
@@ -764,7 +895,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        // 🌟 新增 getDoc 模組用來讀取設定
         import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -784,22 +914,19 @@
 
         const MY_EMAIL = "bruce9811123@gmail.com"; 
 
-        // 🌟 自動監聽 Google 登入狀態
         onAuthStateChanged(auth, (user) => {
             if (user && user.email === MY_EMAIL) {
                 window.loginSuccess(false); 
-                window.loadLayout(); // 登入成功後自動載入儲存的排版
+                window.loadLayout(); 
             } else if (user && user.email !== MY_EMAIL) {
                 signOut(auth); 
             }
         });
 
-        // 🌟 提供全域 Firebase 登出功能
         window.firebaseLogout = async function() {
             await signOut(auth);
         };
 
-        // 🌟 儲存拖曳後的版面設定
         window.saveLayout = async function() {
             if (!auth.currentUser) return showToast('請先完成 Google 登入才能儲存設定', 'error');
             
@@ -821,7 +948,6 @@
             }
         };
 
-        // 🌟 載入版面設定
         window.loadLayout = async function() {
             try {
                 const docSnap = await getDoc(doc(db, "dashboard_settings", "layout_config"));
@@ -835,14 +961,12 @@
                             item.style.height = data[id].height || '';
                         }
                     });
-                    console.log("✅ 已成功套用您專屬的自訂版面");
                 }
             } catch (err) {
                 console.error("載入版面失敗:", err);
             }
         };
 
-        // 🌟 恢復預設值功能
         window.resetLayout = function() {
             document.querySelectorAll('.layout-item').forEach(item => {
                 item.style.transform = '';
@@ -852,7 +976,6 @@
             showToast('🔄 已恢復為預設版面', 'success');
         };
 
-        // 🌟 Google 登入按鈕事件
         const googleBtn = document.getElementById('google-login-btn');
         const errDisplay = document.getElementById('login-err');
 
@@ -900,7 +1023,6 @@
                     updatedAt: serverTimestamp(),
                     dashboard_data: allData
                 });
-                console.log(`✅ 資料已成功同步至 Firebase (server_logs/${year}-${month}-${day}/records/${timeStr})！`);
             } catch (error) {
                 console.error("Firebase Firestore 寫入失敗:", error);
             }

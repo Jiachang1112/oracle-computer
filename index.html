@@ -345,28 +345,34 @@
             </div>
         </div>
 
-        <div class="card cloud-card layout-item" id="cloud-card">
+<div class="card cloud-card layout-item" id="cloud-card">
             <h3 class="drag-handle" title="按住可拖曳位置">☁️ CLOUD TRANSFER (PC ↔ ORACLE)</h3>
             
-            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                <input type="file" id="cloud-file-input" style="flex: 1; background: #111; color: #fff; border: 1px solid #333; padding: 5px; border-radius: 4px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
-                <button onclick="uploadToCloud()" style="background: var(--accent-cyan); color: #000; border: none; padding: 6px 15px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s;">上傳檔案</button>
+            <!-- 🌟 拖曳上傳感應區塊 -->
+            <div id="drop-zone" style="border: 2px dashed #444; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 15px; transition: 0.3s; cursor: pointer; background: #111;" onclick="document.getElementById('cloud-file-input').click()">
+                <div style="font-size: 1.5rem; margin-bottom: 5px; pointer-events: none;">📥</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; pointer-events: none;">點擊選擇檔案，或將檔案<b>拖曳至此處</b>上傳</div>
+                <input type="file" id="cloud-file-input" style="display: none;" onchange="handleFileSelect(event)">
             </div>
             
+            <!-- 進度條 -->
             <div class="progress-bg" id="upload-progress-bg" style="display: none; margin-bottom: 15px;">
                 <div class="progress-bar" id="upload-progress-bar" style="width: 0%; background: var(--accent-cyan); transition: width 0.3s;"></div>
             </div>
 
+            <!-- 檔案列表 -->
             <div id="cloud-file-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
                 <div style="color: #666; font-size: 0.8rem; text-align: center;">載入檔案中...</div>
             </div>
+
+            <!-- 強制抓取區塊 -->
             <div style="margin-top: 15px; border-top: 1px dashed #333; padding-top: 15px;">
-    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">📥 強制抓取主機任意檔案 (請輸入絕對路徑)</div>
-    <div style="display: flex; gap: 10px;">
-        <input type="text" id="abs-path-input" placeholder="例如: /home/ubuntu/Remote_monitor/server.py" style="flex: 1; background: #111; color: #fff; border: 1px solid #333; padding: 6px; border-radius: 4px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
-        <button onclick="downloadByPath()" style="background: var(--accent-yellow); color: #000; border: none; padding: 6px 15px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s;">強制下載</button>
-    </div>
-</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">📥 強制抓取主機任意檔案 (請輸入絕對路徑)</div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="abs-path-input" placeholder="例如: /home/ubuntu/Remote_monitor/server.py" style="flex: 1; background: #111; color: #fff; border: 1px solid #333; padding: 6px; border-radius: 4px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
+                    <button onclick="downloadByPath()" style="background: var(--accent-yellow); color: #000; border: none; padding: 6px 15px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s;">強制下載</button>
+                </div>
+            </div>
         </div>
 
         <div class="card win-card layout-item" id="win-card">
@@ -511,6 +517,7 @@
             }
 
             window.loadCloudFiles();
+            window.setupDropZone();
         };
 
         window.logout = async function() {
@@ -581,10 +588,48 @@
         // ==========================================
         // 🌟 本地 API 雲端檔案傳輸功能 (已強化錯誤攔截)
         // ==========================================
-        window.uploadToCloud = async function() {
-            const fileInput = document.getElementById('cloud-file-input');
-            const file = fileInput.files[0];
-            
+// ==========================================
+        // 🌟 拖曳上傳與檔案傳輸核心邏輯
+        // ==========================================
+        window.setupDropZone = function() {
+            const dropZone = document.getElementById('drop-zone');
+            if(!dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = 'var(--accent-cyan)';
+                    dropZone.style.background = 'rgba(0, 229, 255, 0.1)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.style.borderColor = '#444';
+                    dropZone.style.background = '#111';
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if(files.length > 0) uploadFile(files[0]);
+            }, false);
+        };
+
+        window.handleFileSelect = function(e) {
+            const files = e.target.files;
+            if(files.length > 0) uploadFile(files[0]);
+        };
+
+        window.uploadFile = async function(file) {
             if (!file) return showToast('⚠️ 請先選擇要上傳的檔案', 'error');
             
             const formData = new FormData();
@@ -601,36 +646,64 @@
                     body: formData
                 });
                 
-                // 檢查是否被 Nginx 擋下 (Error 413: 檔案過大)
                 if (!res.ok) {
-                    if (res.status === 413) throw new Error("檔案太大，超過伺服器限制 (通常是 Nginx 預設的 1MB)");
-                    
-                    try {
-                        const errData = await res.json();
-                        throw new Error(errData.message || `伺服器錯誤代碼: ${res.status}`);
-                    } catch (e) {
-                        throw new Error(`連線異常或伺服器錯誤代碼: ${res.status}`);
-                    }
+                    if (res.status === 413) throw new Error("檔案太大，超過伺服器限制 (Nginx 預設 1MB)");
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `伺服器錯誤代碼: ${res.status}`);
                 }
 
                 const data = await res.json();
-                
                 if (data.status === 'success') {
                     progressBar.style.width = '100%';
                     showToast('✅ 檔案上傳成功！', 'success');
-                    fileInput.value = ''; 
+                    document.getElementById('cloud-file-input').value = ''; 
                     window.loadCloudFiles(); 
                 } else {
                     throw new Error(data.message || '伺服器未回傳成功狀態');
                 }
             } catch (err) {
-                console.error("上傳失敗細節:", err);
                 showToast(`❌ 上傳失敗: ${err.message}`, 'error');
             } finally {
                 setTimeout(() => { 
                     progressBg.style.display = 'none'; 
                     progressBar.style.width = '0%'; 
                 }, 1000);
+            }
+        };
+
+        window.loadCloudFiles = async function() {
+            const fileListContainer = document.getElementById('cloud-file-list');
+            if(!fileListContainer) return;
+            fileListContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">讀取中...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/files`);
+                const files = await res.json();
+                
+                if (!Array.isArray(files) || files.length === 0) {
+                    fileListContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">目前主機沒有任何檔案</div>';
+                    return;
+                }
+
+                let html = '';
+                files.forEach(filename => {
+                    const url = `${API_BASE}/api/download/${encodeURIComponent(filename)}`;
+                    const safeName = filename.replace(/'/g, "\\'");
+                    
+                    // 🌟 加入 draggable="true" 屬性，在支援的瀏覽器(如 Chrome)可以直接拖曳這條項目到桌面下載
+                    html += `
+                        <div class="file-item" draggable="true" ondragstart="event.dataTransfer.setData('DownloadURL', 'application/octet-stream:${safeName}:${url}')" title="可按住拖曳至桌面下載，或點擊右側按鈕">
+                            <span class="file-name">📄 ${filename}</span>
+                            <div class="file-actions">
+                                <button onclick="window.open('${url}', '_blank')" title="下載檔案">↓ 下載</button>
+                                <button class="del-btn" onclick="window.deleteCloudFile('${safeName}')" title="刪除檔案">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                fileListContainer.innerHTML = html;
+            } catch (error) {
+                fileListContainer.innerHTML = '<div style="color: #ff3366; font-size: 0.8rem; text-align: center;">讀取失敗</div>';
             }
         };
 

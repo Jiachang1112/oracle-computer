@@ -360,6 +360,13 @@
             <div id="cloud-file-list" style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
                 <div style="color: #666; font-size: 0.8rem; text-align: center;">載入檔案中...</div>
             </div>
+            <div style="margin-top: 15px; border-top: 1px dashed #333; padding-top: 15px;">
+    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">📥 強制抓取主機任意檔案 (請輸入絕對路徑)</div>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="abs-path-input" placeholder="例如: /home/ubuntu/Remote_monitor/server.py" style="flex: 1; background: #111; color: #fff; border: 1px solid #333; padding: 6px; border-radius: 4px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;">
+        <button onclick="downloadByPath()" style="background: var(--accent-yellow); color: #000; border: none; padding: 6px 15px; border-radius: 4px; font-weight: 700; cursor: pointer; transition: 0.2s;">強制下載</button>
+    </div>
+</div>
         </div>
 
         <div class="card win-card layout-item" id="win-card">

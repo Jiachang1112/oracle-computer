@@ -345,7 +345,7 @@
             </div>
         </div>
 
-<div class="card cloud-card layout-item" id="cloud-card">
+        <div class="card cloud-card layout-item" id="cloud-card">
             <h3 class="drag-handle" title="按住可拖曳位置">☁️ CLOUD TRANSFER (PC ↔ ORACLE)</h3>
             <!-- 🌟 自訂上傳路徑 -->
             <div style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
@@ -590,9 +590,6 @@
         }
 
         // ==========================================
-        // 🌟 本地 API 雲端檔案傳輸功能 (已強化錯誤攔截)
-        // ==========================================
-// ==========================================
         // 🌟 拖曳上傳與檔案傳輸核心邏輯
         // ==========================================
         window.setupDropZone = function() {
@@ -636,8 +633,12 @@
         window.uploadFile = async function(file) {
             if (!file) return showToast('⚠️ 請先選擇要上傳的檔案', 'error');
             
+            const customPath = document.getElementById('upload-path-input').value.trim();
             const formData = new FormData();
             formData.append('file', file);
+            if (customPath) {
+                formData.append('path', customPath);
+            }
 
             const progressBg = document.getElementById('upload-progress-bg');
             const progressBar = document.getElementById('upload-progress-bar');
@@ -659,7 +660,7 @@
                 const data = await res.json();
                 if (data.status === 'success') {
                     progressBar.style.width = '100%';
-                    showToast('✅ 檔案上傳成功！', 'success');
+                    showToast(data.saved_path ? `✅ 已上傳至: ${data.saved_path}` : '✅ 檔案上傳成功！', 'success');
                     document.getElementById('cloud-file-input').value = ''; 
                     window.loadCloudFiles(); 
                 } else {
@@ -691,51 +692,17 @@
 
                 let html = '';
                 files.forEach(filename => {
-                    const url = `${API_BASE}/api/download/${encodeURIComponent(filename)}`;
-                    const safeName = filename.replace(/'/g, "\\'");
-                    
-                    // 🌟 加入 draggable="true" 屬性，在支援的瀏覽器(如 Chrome)可以直接拖曳這條項目到桌面下載
-                    html += `
-                        <div class="file-item" draggable="true" ondragstart="event.dataTransfer.setData('DownloadURL', 'application/octet-stream:${safeName}:${url}')" title="可按住拖曳至桌面下載，或點擊右側按鈕">
-                            <span class="file-name">📄 ${filename}</span>
-                            <div class="file-actions">
-                                <button onclick="window.open('${url}', '_blank')" title="下載檔案">↓ 下載</button>
-                                <button class="del-btn" onclick="window.deleteCloudFile('${safeName}')" title="刪除檔案">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                fileListContainer.innerHTML = html;
-            } catch (error) {
-                fileListContainer.innerHTML = '<div style="color: #ff3366; font-size: 0.8rem; text-align: center;">讀取失敗</div>';
-            }
-        };
-
-        window.loadCloudFiles = async function() {
-            const fileListContainer = document.getElementById('cloud-file-list');
-            if(!fileListContainer) return;
-            fileListContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">讀取中...</div>';
-
-            try {
-                const res = await fetch(`${API_BASE}/api/files`);
-                const files = await res.json();
-                
-                if (!Array.isArray(files) || files.length === 0) {
-                    fileListContainer.innerHTML = '<div style="color: #666; font-size: 0.8rem; text-align: center;">目前主機沒有任何檔案</div>';
-                    return;
-                }
-
-                let html = '';
-                files.forEach(filename => {
-                    const url = `${API_BASE}/api/download/${encodeURIComponent(filename)}`;
+                    const relativeUrl = `${API_BASE}/api/download/${encodeURIComponent(filename)}`;
+                    // 轉換成完整的絕對路徑，瀏覽器的拖曳下載才會生效
+                    const absoluteUrl = new URL(relativeUrl, window.location.href).href; 
                     const safeName = filename.replace(/'/g, "\\'");
                     
                     html += `
-                        <div class="file-item">
-                            <span class="file-name">📄 ${filename}</span>
+                        <div class="file-item" draggable="true" ondragstart="event.dataTransfer.setData('DownloadURL', 'application/octet-stream:${safeName}:${absoluteUrl}')" title="💡 按住此區塊並拖曳至電腦桌面即可下載">
+                            <span class="file-name" style="cursor: grab;">📄 ${filename}</span>
                             <div class="file-actions">
-                                <button onclick="window.open('${url}', '_blank')" title="下載檔案">↓</button>
-                                <button onclick="window.copyWgetCommand('${url}', '${safeName}')" title="複製 Wget 指令">🔗 Wget</button>
+                                <button onclick="window.open('${relativeUrl}', '_blank')" title="下載檔案">↓ 下載</button>
+                                <button onclick="window.copyWgetCommand('${relativeUrl}', '${safeName}')" title="複製 Wget 指令">🔗 Wget</button>
                                 <button class="del-btn" onclick="window.deleteCloudFile('${safeName}')" title="刪除檔案">🗑️</button>
                             </div>
                         </div>
@@ -746,6 +713,15 @@
                 console.error("讀取檔案列表失敗", error);
                 fileListContainer.innerHTML = '<div style="color: #ff3366; font-size: 0.8rem; text-align: center;">讀取失敗</div>';
             }
+        };
+
+        // 🌟 強制抓取主機任意檔案功能
+        window.downloadByPath = function() {
+            const path = document.getElementById('abs-path-input').value.trim();
+            if(!path) return showToast('⚠️ 請先輸入檔案的絕對路徑', 'error');
+            
+            window.open(`${API_BASE}/api/download-any?path=${encodeURIComponent(path)}`, '_blank');
+            document.getElementById('abs-path-input').value = '';
         };
 
         window.copyWgetCommand = function(url, filename) {
